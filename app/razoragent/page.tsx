@@ -1,16 +1,17 @@
 'use client';
 
 import React, { useState } from 'react';
-import Navbar from '@/components/razoragent/Navbar';
+import Navbar, { DashboardTab } from '@/components/razoragent/Navbar';
 import AgentTerminal from '@/components/razoragent/AgentTerminal';
 import PolicyInspector from '@/components/razoragent/PolicyInspector';
 import OrderReceiptCard from '@/components/razoragent/OrderReceiptCard';
-import RaceConditionSandbox from '@/components/razoragent/RaceConditionSandbox';
+import MerchantCatalogView from '@/components/razoragent/MerchantCatalogView';
 import MerchantAnalytics from '@/components/razoragent/MerchantAnalytics';
 import BenchmarkModal from '@/components/razoragent/BenchmarkModal';
 import { GuardrailPolicyConfig, SimulationResult, TestResult } from '@/lib/razoragent/types';
 
 export default function RazorAgentPage() {
+  const [activeTab, setActiveTab] = useState<DashboardTab>('buyer-studio');
   const [simulationResult, setSimulationResult] = useState<SimulationResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [verificationResult, setVerificationResult] = useState<{ verified: boolean; status: string; signature?: string } | null>(null);
@@ -83,70 +84,62 @@ export default function RazorAgentPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#07090F] text-slate-100 font-sans antialiased selection:bg-[#0C8CE9] selection:text-white">
-      {/* Navbar */}
-      <Navbar onRunBenchmarks={handleRunBenchmarks} benchmarksLoading={benchmarkLoading} />
+    <div className="min-h-screen bg-[#07090F] text-slate-100 font-sans antialiased selection:bg-[#0C8CE9] selection:text-white flex flex-col">
+      {/* Navbar with Section Tabs */}
+      <Navbar
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onRunBenchmarks={handleRunBenchmarks}
+        benchmarksLoading={benchmarkLoading}
+      />
 
-      {/* Hero Banner Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-4">
-        <div className="bg-gradient-to-r from-[#0C152B] via-[#0E1B38] to-[#0A1020] border border-[#0C8CE9]/30 rounded-3xl p-6 sm:p-8 relative overflow-hidden shadow-2xl">
-          {/* Background Ambient Glow */}
-          <div className="absolute -right-10 -top-10 w-80 h-80 bg-[#0C8CE9]/15 rounded-full blur-3xl pointer-events-none"></div>
-          <div className="absolute right-1/3 bottom-0 w-60 h-60 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
-          <div className="max-w-3xl space-y-3 relative z-10">
-            <div className="flex items-center space-x-2">
-              <span className="px-3 py-1 rounded-full text-[11px] font-mono font-bold bg-[#0C8CE9]/20 text-[#3395FF] border border-[#0C8CE9]/40 tracking-wide uppercase">
-                Razorpay AI Buildathon 2026 Submission
-              </span>
-              <span className="text-xs text-slate-400 font-mono">· Track 01</span>
+      {/* Main Content Area */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full">
+        
+        {/* Tab 1: AI Buyer Studio */}
+        {activeTab === 'buyer-studio' && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Left Terminal (7 Cols) */}
+            <div className="lg:col-span-7 h-[680px]">
+              <AgentTerminal
+                onRunSimulation={handleRunSimulation}
+                isLoading={isLoading}
+                simulationResult={simulationResult}
+              />
             </div>
 
-            <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">
-              Razor<span className="text-[#3395FF]">Agent</span> — Bounded MCP Commerce & Settlement Gateway
-            </h1>
-
-            <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-normal">
-              Turning merchant catalogs into standardized Model Context Protocol (MCP) servers so autonomous AI shopping agents can discover, quote, and transact via Razorpay—with hard mathematical guardrails and cryptographic idempotency.
-            </p>
+            {/* Right Settlement Card & Policies (5 Cols) */}
+            <div className="lg:col-span-5 space-y-6">
+              <OrderReceiptCard
+                order={simulationResult?.order || null}
+                cart={simulationResult?.finalCart || null}
+                onVerifyPayment={handleVerifyPayment}
+                verificationResult={verificationResult}
+              />
+              <PolicyInspector onConfigChange={handlePolicyConfigChange} />
+            </div>
           </div>
-        </div>
-      </div>
+        )}
 
-      {/* Main Dual-Column Interactive Studio */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          
-          {/* Left Column: AI Buyer Terminal (7 Cols) */}
-          <div className="lg:col-span-7 h-[680px]">
-            <AgentTerminal
-              onRunSimulation={handleRunSimulation}
-              isLoading={isLoading}
-              simulationResult={simulationResult}
-            />
-          </div>
+        {/* Tab 2: Store Catalog */}
+        {activeTab === 'catalog' && (
+          <MerchantCatalogView />
+        )}
 
-          {/* Right Column: Policy, Razorpay Settlement & 2 AM Crisis (5 Cols) */}
-          <div className="lg:col-span-5 space-y-6">
-            {/* Razorpay Settlement Card */}
-            <OrderReceiptCard
-              order={simulationResult?.order || null}
-              cart={simulationResult?.finalCart || null}
-              onVerifyPayment={handleVerifyPayment}
-              verificationResult={verificationResult}
-            />
-
-            {/* Policy Inspector */}
+        {/* Tab 3: Guardrails Config */}
+        {activeTab === 'guardrails' && (
+          <div className="max-w-3xl mx-auto">
             <PolicyInspector onConfigChange={handlePolicyConfigChange} />
+          </div>
+        )}
 
-            {/* The 2 AM Crisis Simulator */}
-            <RaceConditionSandbox />
-
-            {/* Merchant Growth Analytics */}
+        {/* Tab 4: Analytics */}
+        {activeTab === 'analytics' && (
+          <div className="max-w-4xl mx-auto space-y-6">
             <MerchantAnalytics />
           </div>
+        )}
 
-        </div>
       </main>
 
       {/* Benchmark Modal */}
