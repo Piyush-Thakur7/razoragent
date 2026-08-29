@@ -84,11 +84,18 @@ During stress testing with concurrent autonomous shopping agents, simulated netw
 The AI Buyer Agent assumed the request had timed out, hallucinatively mutated its nonce, and fired a concurrent retry of `create_guarded_order`. Because standard payment deduplication relied on client-supplied tokens, both requests reached the order creation pipeline 20 milliseconds apart, generating **two separate Razorpay Orders for a single cart**.
 
 ### The Engineering Solution:
+
 1. **Canonical SHA-256 Fingerprinting:** We created an immutable payload fingerprint:
-   $$\text{Hash} = \text{SHA256}(\text{agent\_id} + \text{canonical\_sorted\_cart\_items} + \text{total\_amount} + \text{time\_window})$$
+```
+Hash = SHA256(agent_id + canonical_sorted_cart_items + total_amount + time_window)
+```
+
 2. **Two-Phase Concurrency Latch:** Implemented in-memory promise locking with atomic state transitions:
-   $$\text{INITIATED} \longrightarrow \text{LOCKED} \longrightarrow \text{ORDER\_CREATED} \longrightarrow \text{CAPTURED}$$
-   Any concurrent thread hitting the gateway while an order is in-flight is held on the same promise and receives the cached `order_xxx` ID without firing duplicate Razorpay API calls.
+```
+INITIATED ───► LOCKED ───► ORDER_CREATED ───► CAPTURED
+```
+Any concurrent thread hitting the gateway while an order is in-flight is held on the same promise and receives the cached `order_xxx` ID without firing duplicate Razorpay API calls.
+
 3. **Structured Semantic Interception Feedback:** Rather than returning a generic HTTP 409 conflict, the gateway returns `IDEMPOTENCY_RETRY_SUPPRESSED` with the active order receipt, allowing the agent to proceed to payment confirmation seamlessly.
 
 *(You can test this live on the dashboard via the **"The 2 AM Crisis Simulator"** sandbox button!)*
