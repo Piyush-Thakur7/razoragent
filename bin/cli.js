@@ -26,5 +26,5 @@ console.log('----------------------------------------------------------------');
 console.log('\x1b[35m%s\x1b[0m', '🔗 Universal Cloud Gateway: https://razoragent.vercel.app');
 console.log('\x1b[35m%s\x1b[0m', '📡 MCP Endpoint: https://razoragent.vercel.app/api/razoragent/mcp');
 console.log('----------------------------------------------------------------');
-console.log('\x1b[90m%s\x1b[0m', 'Run "npx tsx scripts/test-razoragent.ts" for 5/5 automated test suites.');
-console.log('\x1b[32m%s\x1b[0m', '✔ Gateway initialized successfully.');
+console.log('\x1b[32m%s\x1b[0m', '✔ RazorAgent CLI Gateway initialized successfully.');
+console.log('\x1b[90m%s\x1b[0m', 'Visit https://razoragent.vercel.app to run the interactive AI Buyer Studio!');
