@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Zap, Activity, Github, Layers, Bot, Sliders, TrendingUp } from 'lucide-react';
+import { Zap, Activity, Github, Layers, Bot, Sliders, TrendingUp, BookOpen } from 'lucide-react';
 
 export type DashboardTab = 'buyer-studio' | 'catalog' | 'guardrails' | 'analytics';
 
@@ -9,12 +9,19 @@ interface NavbarProps {
   activeTab: DashboardTab;
   onTabChange: (tab: DashboardTab) => void;
   onRunBenchmarks: () => void;
+  onOpenDocs: () => void;
   benchmarksLoading?: boolean;
 }
 
-export default function Navbar({ activeTab, onTabChange, onRunBenchmarks, benchmarksLoading }: NavbarProps) {
+export default function Navbar({
+  activeTab,
+  onTabChange,
+  onRunBenchmarks,
+  onOpenDocs,
+  benchmarksLoading,
+}: NavbarProps) {
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-slate-800 bg-[#090C15]/95 backdrop-blur-md">
+    <header className="sticky top-0 z-40 w-full border-b border-slate-800 bg-[#090C15]/95 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         
         {/* Brand Logo */}
@@ -37,7 +44,7 @@ export default function Navbar({ activeTab, onTabChange, onRunBenchmarks, benchm
               onClick={() => onTabChange('buyer-studio')}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 ${
                 activeTab === 'buyer-studio'
-                  ? 'bg-[#121E33] text-[#3395FF] border border-[#0C8CE9]/40'
+                  ? 'bg-[#121E33] text-[#3395FF] border border-[#0C8CE9]/40 font-bold'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-[#0E1322]'
               }`}
             >
@@ -49,7 +56,7 @@ export default function Navbar({ activeTab, onTabChange, onRunBenchmarks, benchm
               onClick={() => onTabChange('catalog')}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 ${
                 activeTab === 'catalog'
-                  ? 'bg-[#121E33] text-[#3395FF] border border-[#0C8CE9]/40'
+                  ? 'bg-[#121E33] text-[#3395FF] border border-[#0C8CE9]/40 font-bold'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-[#0E1322]'
               }`}
             >
@@ -61,7 +68,7 @@ export default function Navbar({ activeTab, onTabChange, onRunBenchmarks, benchm
               onClick={() => onTabChange('guardrails')}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 ${
                 activeTab === 'guardrails'
-                  ? 'bg-[#121E33] text-[#3395FF] border border-[#0C8CE9]/40'
+                  ? 'bg-[#121E33] text-[#3395FF] border border-[#0C8CE9]/40 font-bold'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-[#0E1322]'
               }`}
             >
@@ -73,7 +80,7 @@ export default function Navbar({ activeTab, onTabChange, onRunBenchmarks, benchm
               onClick={() => onTabChange('analytics')}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 ${
                 activeTab === 'analytics'
-                  ? 'bg-[#121E33] text-[#3395FF] border border-[#0C8CE9]/40'
+                  ? 'bg-[#121E33] text-[#3395FF] border border-[#0C8CE9]/40 font-bold'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-[#0E1322]'
               }`}
             >
@@ -84,7 +91,15 @@ export default function Navbar({ activeTab, onTabChange, onRunBenchmarks, benchm
         </div>
 
         {/* Right Actions */}
-        <div className="flex items-center space-x-2.5">
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={onOpenDocs}
+            className="hidden sm:flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[#141C2E] hover:bg-[#1A263E] text-slate-300 border border-slate-700 transition"
+          >
+            <BookOpen className="w-3.5 h-3.5 text-[#3395FF]" />
+            <span>Integration Guide</span>
+          </button>
+
           <button
             onClick={onRunBenchmarks}
             disabled={benchmarksLoading}

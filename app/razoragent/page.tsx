@@ -9,6 +9,7 @@ import MerchantCatalogView from '@/components/razoragent/MerchantCatalogView';
 import MerchantAnalytics from '@/components/razoragent/MerchantAnalytics';
 import BenchmarkModal from '@/components/razoragent/BenchmarkModal';
 import RazorpayCheckoutModal from '@/components/razoragent/RazorpayCheckoutModal';
+import IntegrationDocsModal from '@/components/razoragent/IntegrationDocsModal';
 import WebhookStream, { WebhookEventItem } from '@/components/razoragent/WebhookStream';
 import { GuardrailPolicyConfig, SimulationResult, TestResult } from '@/lib/razoragent/types';
 
@@ -20,6 +21,9 @@ export default function RazorAgentPage() {
 
   // Razorpay Checkout Modal
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+
+  // Integration Docs Modal
+  const [isDocsOpen, setIsDocsOpen] = useState(false);
 
   // Live Webhook Events
   const [webhookEvents, setWebhookEvents] = useState<WebhookEventItem[]>([
@@ -106,7 +110,7 @@ export default function RazorAgentPage() {
           paymentId,
           status: 'CAPTURED_AND_SETTLED',
           method: 'UPI_STANDARD',
-          feePaise: Math.round(Number(simulationResult?.finalCart?.totalAmount || 0) * 2), // 2% MDR
+          feePaise: Math.round(Number(simulationResult?.finalCart?.totalAmount || 0) * 2),
         },
       };
       setWebhookEvents((prev) => [captureEvent, ...prev]);
@@ -154,6 +158,7 @@ export default function RazorAgentPage() {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onRunBenchmarks={handleRunBenchmarks}
+        onOpenDocs={() => setIsDocsOpen(true)}
         benchmarksLoading={benchmarkLoading}
       />
 
@@ -216,6 +221,12 @@ export default function RazorAgentPage() {
         order={simulationResult?.order || null}
         cart={simulationResult?.finalCart || null}
         onPaymentSuccess={handlePaymentSuccess}
+      />
+
+      {/* Merchant Integration Guide Modal */}
+      <IntegrationDocsModal
+        isOpen={isDocsOpen}
+        onClose={() => setIsDocsOpen(false)}
       />
 
       {/* Benchmark Modal */}
