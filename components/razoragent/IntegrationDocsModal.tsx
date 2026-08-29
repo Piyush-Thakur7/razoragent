@@ -22,7 +22,7 @@ export default function IntegrationDocsModal({ isOpen, onClose }: IntegrationDoc
   };
 
   const NEXTJS_SNIPPET = `// app/api/razoragent/mcp/route.ts
-import { handleMCPRequest } from '@razorpay/razoragent';
+import { handleMCPRequest } from 'razoragent';
 
 export async function POST(req: Request) {
   const jsonRpcBody = await req.json();
@@ -41,7 +41,7 @@ export async function POST(req: Request) {
 
   const EXPRESS_SNIPPET = `// server.js (Express.js)
 const express = require('express');
-const { handleMCPRequest } = require('@razorpay/razoragent');
+const { handleMCPRequest } = require('razoragent');
 
 const app = express();
 app.use(express.json());
@@ -236,7 +236,7 @@ Generated via RazorAgent Mission Control © 2026 Piyush Singh.`;
               </button>
             </div>
             <pre className="p-3 rounded-xl bg-[#04060A] border border-slate-800 font-mono text-slate-200">
-              npm install @razorpay/razoragent
+              npm install razoragent
             </pre>
           </div>
 

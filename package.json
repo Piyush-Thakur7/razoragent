@@ -1,13 +1,36 @@
 {
   "name": "razoragent",
   "version": "1.0.0",
-  "private": true,
+  "description": "Bounded Model Context Protocol (MCP) Commerce & Settlement Gateway for Autonomous AI Buyers",
+  "main": "lib/razoragent/index.ts",
+  "types": "lib/razoragent/index.ts",
+  "files": [
+    "lib",
+    "scripts",
+    "README.md"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "test:razoragent": "tsx scripts/test-razoragent.ts"
+  },
+  "keywords": [
+    "razorpay",
+    "mcp",
+    "model-context-protocol",
+    "agentic-commerce",
+    "ai-agents",
+    "fintech",
+    "guardrails",
+    "idempotency"
+  ],
+  "author": "Piyush Singh <th.piyushsingh2007@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Piyush-Thakur7/razoragent.git"
   },
   "dependencies": {
     "lucide-react": "^0.470.0",

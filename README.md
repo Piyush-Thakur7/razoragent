@@ -5,7 +5,9 @@
 > **Author:** Piyush Singh (2nd-Year BCA Student, AI & Cloud Systems Builder)  
 > **Target Role:** AI Builder Intern (Razorpay Bangalore)  
 > **Live Production Gateway:** [https://razoragent.vercel.app](https://razoragent.vercel.app)  
-> **MCP JSON-RPC Endpoint:** `https://razoragent.vercel.app/api/razoragent/mcp`
+> **NPM Package Registry:** [https://www.npmjs.com/package/razoragent](https://www.npmjs.com/package/razoragent)  
+> **MCP JSON-RPC Endpoint:** `https://razoragent.vercel.app/api/razoragent/mcp`  
+> **Install Command:** `npm install razoragent`
 
 ---
 
@@ -115,7 +117,7 @@ RazorAgent is designed for 1-minute merchant onboarding:
 
 ```typescript
 // Example: Exposing RazorAgent MCP tools on any Next.js / Express merchant backend
-import { handleMCPRequest } from '@razorpay/razoragent';
+import { handleMCPRequest } from 'razoragent';
 
 export async function POST(req: Request) {
   const jsonRpcBody = await req.json();
