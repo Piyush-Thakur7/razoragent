@@ -1,6 +1,6 @@
 {
   "name": "razoragent",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "RazorAgent by Resence — Bounded Model Context Protocol (MCP) Commerce & Settlement Gateway for Autonomous AI Buyers",
   "main": "lib/razoragent/index.ts",
   "types": "lib/razoragent/index.ts",

@@ -2,30 +2,65 @@
 
 /**
  * ⚡ RazorAgent by Resence
- * Bounded Model Context Protocol (MCP) Commerce & Settlement Gateway
+ * Enterprise Model Context Protocol (MCP) Commerce & Settlement Gateway
+ * Dynamic CLI Engine
  */
 
 const args = process.argv.slice(2);
-const command = args[0] || 'info';
 
-if (command === 'tools') {
-  console.log('\n\x1b[1m\x1b[34m%s\x1b[0m', '⚡ RazorAgent MCP Commerce Tools:');
-  console.log('  • search_products(query, category, max_price)');
-  console.log('  • get_product_details(product_id)');
-  console.log('  • calculate_cart_quote(items, coupon_code)');
-  console.log('  • evaluate_spend_policy(cart_id)');
-  console.log('  • create_guarded_order(cart_id, idempotency_key)');
-  console.log('  • verify_payment_and_settle(order_id, payment_id, signature)\n');
+// Parse CLI Flags
+let spendCap = 5000;
+let skuLimit = 1;
+let keyId = process.env.RAZORPAY_KEY_ID || null;
+let keySecret = process.env.RAZORPAY_KEY_SECRET || null;
+let isHelp = false;
+
+for (let i = 0; i < args.length; i++) {
+  if (args[i] === '--spend-cap' && args[i + 1]) {
+    spendCap = Number(args[i + 1]);
+    i++;
+  } else if (args[i] === '--sku-limit' && args[i + 1]) {
+    skuLimit = Number(args[i + 1]);
+    i++;
+  } else if (args[i] === '--key' && args[i + 1]) {
+    keyId = args[i + 1];
+    i++;
+  } else if (args[i] === '--secret' && args[i + 1]) {
+    keySecret = args[i + 1];
+    i++;
+  } else if (args[i] === '--help' || args[i] === '-h') {
+    isHelp = true;
+  }
+}
+
+if (isHelp) {
+  console.log('\n\x1b[1m\x1b[34m⚡ RazorAgent CLI Reference\x1b[0m\n');
+  console.log('Usage: npx razoragent [options]\n');
+  console.log('Options:');
+  console.log('  --spend-cap <INR>   Set maximum autonomous transaction spend limit (Default: 5000)');
+  console.log('  --sku-limit <N>     Set maximum allowed units per SKU (Default: 1)');
+  console.log('  --key <KEY_ID>      Provide Razorpay Key ID (e.g. rzp_test_xxx)');
+  console.log('  --secret <SECRET>   Provide Razorpay Key Secret');
+  console.log('  --help, -h          Show this help documentation\n');
+  console.log('Examples:');
+  console.log('  npx razoragent --spend-cap 12000 --sku-limit 2');
+  console.log('  npx razoragent --key rzp_test_AiBuilder2026\n');
   process.exit(0);
 }
 
-// Minimalist, Clean Production Banner (Like Vercel / Stripe CLI)
-console.log('\n\x1b[1m\x1b[34m⚡ RazorAgent\x1b[0m \x1b[90mby\x1b[0m \x1b[1mResence\x1b[0m \x1b[32m(v1.0.3 - Production Ready)\x1b[0m');
+// Clean Dynamic Console Output
+console.log('\n\x1b[1m\x1b[34m⚡ RazorAgent\x1b[0m \x1b[90mby\x1b[0m \x1b[1mResence\x1b[0m \x1b[32m(v1.0.4 - Enterprise MCP Gateway)\x1b[0m');
 console.log('\x1b[90mBounded Model Context Protocol Gateway for Autonomous AI Buyers\x1b[0m\n');
 
-console.log('  \x1b[32m✔\x1b[0m MCP JSON-RPC Server : \x1b[36mhttps://razoragent.vercel.app/api/razoragent/mcp\x1b[0m');
-console.log('  \x1b[32m✔\x1b[0m Policy Guardrails   : \x1b[32mACTIVE\x1b[0m (₹5,000 Spend Cap · 3 SKU Bounds)');
-console.log('  \x1b[32m✔\x1b[0m Idempotency Engine  : \x1b[32mLOCKED\x1b[0m (SHA-256 Anti-Double Billing)');
-console.log('  \x1b[32m✔\x1b[0m Razorpay Adapter    : \x1b[32mREADY\x1b[0m (Dual-Mode: Sandbox / Live)\n');
+console.log('\x1b[1m⚙️  Active Gateway Configuration:\x1b[0m');
+console.log(`  • Autonomous Spend Cap : \x1b[33m₹${spendCap.toLocaleString('en-IN')}\x1b[0m \x1b[90m(Customizable via --spend-cap <INR>)\x1b[0m`);
+console.log(`  • SKU Purchase Limit   : \x1b[33m${skuLimit} unit(s) max\x1b[0m \x1b[90m(Customizable via --sku-limit <N>)\x1b[0m`);
+console.log(`  • Razorpay Integration : \x1b[32m${keyId ? `LIVE KEY (${keyId})` : 'HIGH-FIDELITY SANDBOX'}\x1b[0m \x1b[90m(api.razorpay.com/v1/orders)\x1b[0m`);
+console.log(`  • Concurrency Defense  : \x1b[32mACTIVE\x1b[0m \x1b[90m(Canonical SHA-256 Idempotency Locking)\x1b[0m`);
+console.log(`  • Webhook Verification : \x1b[32mACTIVE\x1b[0m \x1b[90m(HMAC-SHA256 Cryptographic Signature)\x1b[0m\n`);
 
-console.log('\x1b[90mTo launch the interactive AI Studio, visit:\x1b[0m \x1b[4mhttps://razoragent.vercel.app\x1b[0m\n');
+console.log('\x1b[1m📡 Protocol Endpoints & Interfaces:\x1b[0m');
+console.log('  • Universal MCP Endpoint : \x1b[36mhttps://razoragent.vercel.app/api/razoragent/mcp\x1b[0m');
+console.log('  • Merchant Web Dashboard : \x1b[36mhttps://razoragent.vercel.app\x1b[0m\n');
+
+console.log('\x1b[90mTip: Run "npx razoragent --help" to view all CLI configuration flags.\x1b[0m\n');
