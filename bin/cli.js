@@ -60,7 +60,7 @@ console.log(`  • Concurrency Defense  : \x1b[32mACTIVE\x1b[0m \x1b[90m(Canonic
 console.log(`  • Webhook Verification : \x1b[32mACTIVE\x1b[0m \x1b[90m(HMAC-SHA256 Cryptographic Signature)\x1b[0m\n`);
 
 console.log('\x1b[1m📡 Protocol Endpoints & Interfaces:\x1b[0m');
-console.log('  • Universal MCP Endpoint : \x1b[36mhttps://razoragent.vercel.app/api/razoragent/mcp\x1b[0m');
-console.log('  • Merchant Web Dashboard : \x1b[36mhttps://razoragent.vercel.app\x1b[0m\n');
+console.log('  • Universal MCP Endpoint : \x1b[36mhttps://razoragent.resence.in/api/razoragent/mcp\x1b[0m');
+console.log('  • Merchant Web Dashboard : \x1b[36mhttps://razoragent.resence.in\x1b[0m\n');
 
 console.log('\x1b[90mTip: Run "npx razoragent --help" to view all CLI configuration flags.\x1b[0m\n');

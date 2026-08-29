@@ -66,7 +66,7 @@ app.listen(3000, () => console.log('RazorAgent MCP Gateway live on port 3000'));
         "-y",
         "@razorpay/razoragent-mcp",
         "--endpoint",
-        "https://razoragent.vercel.app/api/razoragent/mcp"
+        "https://razoragent.resence.in/api/razoragent/mcp"
       ]
     }
   }
@@ -228,7 +228,7 @@ Generated via RazorAgent Mission Control © 2026 Piyush Singh.`;
                 Install Gateway Package
               </span>
               <button
-                onClick={() => copyCode('npm', 'npm install @razorpay/razoragent')}
+                onClick={() => copyCode('npm', 'npm install razoragent')}
                 className="text-slate-400 hover:text-white flex items-center gap-1 font-mono text-[11px]"
               >
                 {copiedSection === 'npm' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}

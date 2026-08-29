@@ -2,9 +2,9 @@
 
 > **Bounded Model Context Protocol (MCP) Commerce & Settlement Gateway for Autonomous AI Buyers**  
 > **Engineered by:** Resence · Piyush Singh  
-> **Live Production Gateway:** [https://razoragent.vercel.app](https://razoragent.vercel.app)  
+> **Live Production Gateway:** [https://razoragent.resence.in](https://razoragent.resence.in)  
 > **NPM Package Registry:** [https://www.npmjs.com/package/razoragent](https://www.npmjs.com/package/razoragent)  
-> **MCP JSON-RPC Endpoint:** `https://razoragent.vercel.app/api/razoragent/mcp`  
+> **MCP JSON-RPC Endpoint:** `https://razoragent.resence.in/api/razoragent/mcp`  
 > **Install Command:** `npm install razoragent`
 
 ---

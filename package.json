@@ -1,9 +1,10 @@
 {
   "name": "razoragent",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "RazorAgent by Resence — Bounded Model Context Protocol (MCP) Commerce & Settlement Gateway for Autonomous AI Buyers",
   "main": "lib/razoragent/index.ts",
   "types": "lib/razoragent/index.ts",
+  "homepage": "https://razoragent.resence.in",
   "bin": {
     "razoragent": "./bin/cli.js"
   },
@@ -21,7 +22,7 @@
     "test:razoragent": "tsx scripts/test-razoragent.ts"
   },
   "keywords": [
-    "presence",
+    "resence",
     "razoragent",
     "razorpay",
     "mcp",
