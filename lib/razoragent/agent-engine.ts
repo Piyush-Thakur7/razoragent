@@ -55,11 +55,15 @@ export class AgentSimulator {
 
     const lower = prompt.toLowerCase();
 
-    // 1. Precise Quantity Extraction (Avoid matching model numbers like WH-1000)
+    // 1. Precise Quantity Extraction (Supports '5 units', '5 quantity', 'quantity 5', '5x', '5 pcs')
     let targetQty = 1;
-    const explicitQtyMatch = prompt.match(/\b([1-9][0-9]?)\s*(?:units|items|pieces|x|pcs|qty)\b/i);
+    const explicitQtyMatch = prompt.match(/\b([1-9][0-9]?)\s*(?:units|items|pieces|x|pcs|qty|quantity|count|nos)\b/i);
+    const prefixQtyMatch = prompt.match(/\b(?:quantity|qty|count)\s*[:=]?\s*([1-9][0-9]?)\b/i);
+    
     if (explicitQtyMatch && explicitQtyMatch[1]) {
       targetQty = parseInt(explicitQtyMatch[1], 10);
+    } else if (prefixQtyMatch && prefixQtyMatch[1]) {
+      targetQty = parseInt(prefixQtyMatch[1], 10);
     } else {
       const countWordMatch = prompt.match(/\b(?:buy|order|get|purchase)\s+([1-9][0-9]?)\s+(?!wh-|k2|xm|[0-9])([a-z]+)/i);
       if (countWordMatch && countWordMatch[1]) {

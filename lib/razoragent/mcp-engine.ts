@@ -135,19 +135,47 @@ export class MCPEngine {
   private searchProducts(query: string, category?: string, maxPrice?: number, minRating?: number) {
     const q = (query || '').toLowerCase().trim();
 
-    const results = MERCHANT_CATALOG.filter((p) => {
-      const matchesQuery =
-        !q ||
-        p.name.toLowerCase().includes(q) ||
-        p.description.toLowerCase().includes(q) ||
-        p.tags.some((t) => t.toLowerCase().includes(q));
+    const scored = MERCHANT_CATALOG.map((p) => {
+      let score = 0;
+      if (!q) {
+        score = 10;
+      } else {
+        const words = q.split(/\s+/).filter(Boolean);
+        for (const word of words) {
+          // Exact tag match (e.g. tag is 'phone')
+          if (p.tags.some((t) => t.toLowerCase() === word)) {
+            score += 100;
+          }
+          // Exact word match in name
+          else if (p.name.toLowerCase().split(/\s+/).includes(word)) {
+            score += 80;
+          }
+          // Substring in name
+          else if (p.name.toLowerCase().includes(word)) {
+            score += 40;
+          }
+          // Tag contains word as substring (e.g. 'headphones' containing 'phone')
+          else if (p.tags.some((t) => t.toLowerCase().includes(word))) {
+            score += 15;
+          }
+          // Substring in description
+          else if (p.description.toLowerCase().includes(word)) {
+            score += 10;
+          }
+        }
+      }
 
       const matchesCategory = !category || p.category.toLowerCase() === category.toLowerCase();
       const matchesPrice = !maxPrice || p.price <= maxPrice;
       const matchesRating = !minRating || p.rating >= minRating;
 
-      return matchesQuery && matchesCategory && matchesPrice && matchesRating;
+      return { product: p, score, matches: score > 0 && matchesCategory && matchesPrice && matchesRating };
     });
+
+    const results = scored
+      .filter((s) => s.matches)
+      .sort((a, b) => b.score - a.score)
+      .map((s) => s.product);
 
     return {
       query,
