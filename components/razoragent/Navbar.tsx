@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Zap, Activity, Github, Layers, Bot, Sliders, TrendingUp, BookOpen } from 'lucide-react';
+import { Zap, Activity, Github, Layers, Bot, Sliders, TrendingUp, BookOpen, Sparkles } from 'lucide-react';
 
 export type DashboardTab = 'buyer-studio' | 'catalog' | 'guardrails' | 'analytics';
 
@@ -24,16 +24,21 @@ export default function Navbar({
     <header className="sticky top-0 z-40 w-full border-b border-slate-800 bg-[#090C15]/95 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         
-        {/* Brand Logo */}
+        {/* Brand Logo with Resence Subtitle */}
         <div className="flex items-center space-x-6">
           <div className="flex items-center space-x-2.5">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#0C8CE9] to-[#3395FF] flex items-center justify-center shadow-lg shadow-[#0C8CE9]/25">
               <Zap className="w-4 h-4 text-white fill-white" />
             </div>
-            <div className="flex items-center space-x-1.5">
-              <span className="font-extrabold text-white text-base tracking-tight">Razor<span className="text-[#3395FF]">Agent</span></span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded font-mono font-bold bg-[#0C8CE9]/20 text-[#3395FF] border border-[#0C8CE9]/30">
-                MCP GATEWAY
+            <div>
+              <div className="flex items-center space-x-1.5 leading-none">
+                <span className="font-extrabold text-white text-base tracking-tight">Razor<span className="text-[#3395FF]">Agent</span></span>
+                <span className="text-[9px] px-1 py-0.2 rounded font-mono font-bold bg-[#0C8CE9]/20 text-[#3395FF] border border-[#0C8CE9]/30">
+                  MCP
+                </span>
+              </div>
+              <span className="text-[10px] font-mono text-slate-400 font-semibold tracking-wider flex items-center gap-0.5 mt-0.5">
+                by <span className="text-white font-bold">Resence</span>
               </span>
             </div>
           </div>

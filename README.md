@@ -1,8 +1,8 @@
-# ⚡ RazorAgent: Bounded MCP Commerce & Settlement Gateway for Autonomous AI Buyers
+# ⚡ RazorAgent by Resence: Bounded MCP Commerce & Settlement Gateway for Autonomous AI Buyers
 
 > **Razorpay AI Buildathon 2026 Submission**  
 > **Track 01:** AI Growth & Agentic Commerce  
-> **Author:** Piyush Singh (2nd-Year BCA Student, AI & Cloud Systems Builder)  
+> **Author & Brand:** Piyush Singh (Resence)  
 > **Target Role:** AI Builder Intern (Razorpay Bangalore)  
 > **Live Production Gateway:** [https://razoragent.vercel.app](https://razoragent.vercel.app)  
 > **NPM Package Registry:** [https://www.npmjs.com/package/razoragent](https://www.npmjs.com/package/razoragent)  

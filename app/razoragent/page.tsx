@@ -229,6 +229,20 @@ export default function RazorAgentPage() {
         onClose={() => setIsDocsOpen(false)}
       />
 
+      {/* Footer with Resence Branding */}
+      <footer className="border-t border-slate-900 bg-[#06080E] py-4 text-center text-slate-500 text-xs font-mono">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <div className="flex items-center space-x-1.5">
+            <span className="text-white font-bold">RazorAgent</span>
+            <span className="text-slate-400">by</span>
+            <span className="text-[#3395FF] font-extrabold tracking-wider">RESENCE</span>
+          </div>
+          <p className="text-[11px] text-slate-400">
+            Engineered by Piyush Singh · Razorpay AI Buildathon 2026
+          </p>
+        </div>
+      </footer>
+
       {/* Benchmark Modal */}
       <BenchmarkModal
         isOpen={isBenchmarkOpen}
