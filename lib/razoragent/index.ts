@@ -9,10 +9,10 @@ export * from './guardrails';
 export * from './idempotency';
 export * from './razorpay';
 export * from './mcp-engine';
-export * from './agent-engine';
+export { AgentSimulator, globalAgentSimulator } from './agent-engine';
 export * from './test-suite';
 
-import { MCP_TOOLS_REGISTRY, executeMCPTool } from './mcp-engine';
+import { MCP_TOOLS, globalMCPEngine } from './mcp-engine';
 import { GuardrailPolicyConfig } from './types';
 
 /**
@@ -28,7 +28,7 @@ export async function handleMCPRequest(
     return {
       jsonrpc: '2.0',
       id,
-      result: { tools: MCP_TOOLS_REGISTRY },
+      result: { tools: MCP_TOOLS },
     };
   }
 
@@ -44,7 +44,7 @@ export async function handleMCPRequest(
       };
     }
 
-    const result = await executeMCPTool(toolName, toolArgs);
+    const result = await globalMCPEngine.executeTool(toolName, toolArgs);
     return {
       jsonrpc: '2.0',
       id,
