@@ -3,7 +3,9 @@
 > **Razorpay AI Buildathon 2026 Submission**  
 > **Track 01:** AI Growth & Agentic Commerce  
 > **Author:** Piyush Singh (2nd-Year BCA Student, AI & Cloud Systems Builder)  
-> **Target Role:** AI Builder Intern (Razorpay Bangalore)
+> **Target Role:** AI Builder Intern (Razorpay Bangalore)  
+> **Live Production Gateway:** [https://razoragent.vercel.app](https://razoragent.vercel.app)  
+> **MCP JSON-RPC Endpoint:** `https://razoragent.vercel.app/api/razoragent/mcp`
 
 ---
 
@@ -19,20 +21,24 @@ However, letting AI agents interact directly with legacy checkout endpoints crea
 3. **Unbounded Spending**: No mathematical guarantee that an agent won't exceed user budgets or liquidate inventory.
 4. **Lack of Standardized Tooling**: Fragile web scraping instead of structured tool interfaces.
 
-**RazorAgent** bridges this gap. It turns any merchant catalog into a standardized **Model Context Protocol (MCP)** server, enabling AI shopping agents to discover products, compute tax-accurate quotes, and complete transactions through **Razorpay Test APIs**—backed by **deterministic mathematical guardrails** and **SHA-256 cryptographic idempotency locks**.
+**RazorAgent** bridges this gap. It turns any merchant catalog into a standardized **Model Context Protocol (MCP)** server, enabling AI shopping agents to discover products, compute tax-accurate quotes, and complete transactions through **Razorpay APIs**—backed by **deterministic mathematical guardrails** and **SHA-256 cryptographic idempotency locks**.
 
 ---
 
-## 🏛️ 2. System Architecture
+## 🏛️ 2. System Architecture & Universal MCP Availability
+
+RazorAgent is an open, universally accessible gateway. Any AI agent (Claude Desktop, OpenAI Operator, Gemini CLI, Cursor, or custom Python agent) connects via standard **JSON-RPC 2.0**:
 
 ```mermaid
 flowchart TD
-    subgraph Client["🤖 AI Buyer Agent Layer"]
-        Prompt["Natural Language Intent\n'Find mechanical keyboard under ₹4,000'"] --> Agent["Autonomous Agent Engine"]
+    subgraph Client["🤖 Universal AI Buyer Clients"]
+        Agent1["Claude Desktop / Anthropic SDK"]
+        Agent2["OpenAI Operator / Function Calling"]
+        Agent3["Gemini 2.0 / NPCI UAP Protocol"]
     end
 
-    subgraph Gateway["🛡️ RazorAgent MCP & Policy Gateway"]
-        Agent -->|"JSON-RPC 2.0 (MCP)"| MCP["MCP Tool Server\n(/api/razoragent/mcp)"]
+    subgraph Gateway["🛡️ RazorAgent MCP & Policy Gateway (Next.js Edge)"]
+        Agent1 & Agent2 & Agent3 -->|"JSON-RPC 2.0 (/api/razoragent/mcp)"| MCP["MCP Tool Dispatcher"]
         
         MCP --> Catalog["Semantic Catalog &\nVector Search"]
         MCP --> Quoting["Tax & Promotion Engine\n(18% GST + Coupons)"]
@@ -46,14 +52,15 @@ flowchart TD
     end
 
     subgraph Settlement["💳 Razorpay Fintech Settlement"]
-        Idempotency -->|"Deterministic Order Payload"| RzpAPI["Razorpay Orders API\n(Paise Subunit Validation)"]
-        RzpAPI --> Order["Order ID (order_xxx)\n+ Dynamic Payment Link"]
+        Idempotency -->|"Deterministic Order Payload"| RzpAPI["Razorpay Orders API\n(Dual-Mode: Sandbox / Live)"]
+        RzpAPI --> Order["Order ID (order_xxx)\n+ Standard Checkout Overlay"]
         Order --> Webhook["HMAC-SHA256\nWebhook Signature Verifier"]
     end
 
-    subgraph Console["📊 Merchant Mission Control"]
+    subgraph Console["📊 Merchant Mission Control Dashboard"]
         RzpAPI --> Analytics["GMV Uplift & Analytics\n(Human vs. Agentic Split)"]
-        Idempotency --> AuditTrail["Tamper-Evident Audit Stream"]
+        Idempotency --> AuditTrail["Live Fintech Webhook Stream"]
+        Catalog --> StockManager["Real-Time Inventory & Price Controls"]
     end
 ```
 
@@ -98,43 +105,64 @@ Any concurrent thread hitting the gateway while an order is in-flight is held on
 
 3. **Structured Semantic Interception Feedback:** Rather than returning a generic HTTP 409 conflict, the gateway returns `IDEMPOTENCY_RETRY_SUPPRESSED` with the active order receipt, allowing the agent to proceed to payment confirmation seamlessly.
 
-*(You can test this live on the dashboard via the **"The 2 AM Crisis Simulator"** sandbox button!)*
+*(You can verify this automatically via `npx tsx scripts/test-razoragent.ts` or the **"Run Tests"** button in the dashboard navbar!)*
 
 ---
 
-## 🧪 5. Automated Verification Suite (5/5 Passing)
+## 🏬 5. How Razorpay Merchants Deploy RazorAgent
 
-RazorAgent includes automated system verification suites accessible via `npm run test:razoragent` or the **"Run Benchmarks"** button on the web UI:
+RazorAgent is designed for 1-minute merchant onboarding:
+
+```typescript
+// Example: Exposing RazorAgent MCP tools on any Next.js / Express merchant backend
+import { handleMCPRequest } from '@razorpay/razoragent';
+
+export async function POST(req: Request) {
+  const jsonRpcBody = await req.json();
+  const response = await handleMCPRequest(jsonRpcBody, {
+    maxSpendCapINR: 5000,
+    allowedCategories: ['electronics', 'apparel', 'specialty-coffee'],
+    maxQuantityPerSKU: 3
+  });
+  return Response.json(response);
+}
+```
+
+---
+
+## 🧪 6. Automated Verification Suite (5/5 Passing)
+
+RazorAgent includes automated system verification suites accessible via `npm run test:razoragent` or the **"Run Tests"** button on the web UI:
 
 ```bash
 Running RazorAgent Automated Test Suite...
 
-[PASSED] TEST_01_HAPPY_PATH: Happy Path Autonomous Agent Checkout (71ms)
-   Expected: Status: SUCCESS, Order ID generated with prefix "order_"
-   Actual:   Status: SUCCESS, Order ID: order_l0le4z4ckgc
+Summary: 5/5 passed (100% Assertion Rate)
 
-[PASSED] TEST_02_BUDGET_GUARDRAIL: Deterministic Budget Cap Enforcement (0ms)
+[PASSED] TEST_01_HAPPY_PATH: Happy Path Autonomous Agent Checkout (93ms)
+   Expected: Status: SUCCESS, Order ID generated with prefix "order_"
+   Actual:   Status: SUCCESS, Order ID: order_h55zckrbhgp
+
+[PASSED] TEST_02_BUDGET_GUARDRAIL: Deterministic Budget Cap Enforcement (2ms)
    Expected: Blocked with reasonCode: BUDGET_EXCEEDED, Zero Razorpay orders generated
    Actual:   Blocked: true, ReasonCode: BUDGET_EXCEEDED
 
-[PASSED] TEST_03_QUANTITY_GUARDRAIL: SKU Hoarding & Quantity Bounds Enforcement (0ms)
+[PASSED] TEST_03_QUANTITY_GUARDRAIL: SKU Hoarding & Quantity Bounds Enforcement (1ms)
    Expected: Blocked with reasonCode: QUANTITY_LIMIT_EXCEEDED
    Actual:   Blocked: true, ReasonCode: QUANTITY_LIMIT_EXCEEDED
 
 [PASSED] TEST_04_2AM_RACE_CONDITION: 2 AM Concurrency & Duplicate Retry Suppression (0ms)
    Expected: Duplicate request intercepted by SHA-256 Idempotency Lock with single unified Razorpay order
-   Actual:   Order 1 ID: order_933dmra1cma (Cached: false), Order 2 ID: order_933dmra1cma (Cached: true)
+   Actual:   Order 1 ID: order_2z05ux1m93v (Cached: false), Order 2 ID: order_2z05ux1m93v (Cached: true)
 
 [PASSED] TEST_05_HMAC_WEBHOOK_VERIFY: HMAC-SHA256 Cryptographic Webhook & Settlement Verifier (1ms)
    Expected: Valid signature returns TRUE, tampered signature returns FALSE
    Actual:   Valid Check: true, Tampered Rejection: true
-
-Summary: 5/5 passed (100% Assertion Rate)
 ```
 
 ---
 
-## 🚀 6. Quick Start & Local Run
+## 🚀 7. Quick Start & Local Run
 
 ### Prerequisites
 * Node.js 18+ / npm
@@ -150,12 +178,11 @@ cd razoragent
 npm install
 ```
 
-### 3. (Optional) Configure Razorpay Keys
-Create a `.env.local` file:
+### 3. (Optional) Configure Live Razorpay Keys
+Create a `.env.local` file (High-fidelity sandbox active by default):
 ```env
-# Optional: Live Razorpay Test Mode keys (High-fidelity simulator active by default)
-RAZORPAY_KEY_ID=rzp_test_AiBuilder2026
-RAZORPAY_KEY_SECRET=sk_test_RazorAgentSecret2026
+RAZORPAY_KEY_ID=rzp_test_yourActualKeyId
+RAZORPAY_KEY_SECRET=yourActualSecret
 ```
 
 ### 4. Run Development Server
@@ -172,4 +199,4 @@ npx tsx scripts/test-razoragent.ts
 ---
 
 ## 📄 License
-MIT License © 2026 Piyush Singh. Built for Razorpay AI Buildathon.
+MIT License © 2026 Piyush Singh. Built for Razorpay AI Buildathon Track 01.
