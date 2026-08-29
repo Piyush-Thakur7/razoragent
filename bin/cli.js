@@ -3,28 +3,29 @@
 /**
  * ⚡ RazorAgent by Resence
  * Bounded Model Context Protocol (MCP) Commerce & Settlement Gateway
- * Author: Piyush Singh (Resence)
  */
 
-console.log('\x1b[36m%s\x1b[0m', '================================================================');
-console.log('\x1b[1m\x1b[34m%s\x1b[0m', '  ⚡ RazorAgent by Resence — Bounded MCP Commerce Gateway');
-console.log('\x1b[90m%s\x1b[0m', '  Engineered by Piyush Singh (Resence) | Model Context Protocol v1.0');
-console.log('\x1b[36m%s\x1b[0m', '================================================================');
-console.log('\x1b[32m%s\x1b[0m', '✔ Model Context Protocol (MCP) JSON-RPC 2.0 Engine Active');
-console.log('\x1b[32m%s\x1b[0m', '✔ Deterministic Guardrail Policy Evaluator: ACTIVE (₹5,000 Cap)');
-console.log('\x1b[32m%s\x1b[0m', '✔ SHA-256 Idempotency Lock: READY');
-console.log('\x1b[32m%s\x1b[0m', '✔ Razorpay Settlement Adapter: DUAL-MODE (Sandbox/Live)');
-console.log('----------------------------------------------------------------');
-console.log('\x1b[33m%s\x1b[0m', 'Registered MCP Commerce Tools (6 Active):');
-console.log('  1. search_products()          - Semantic catalog filter');
-console.log('  2. get_product_details()      - Technical specs & stock');
-console.log('  3. calculate_cart_quote()     - 18% GST tax & promo engine');
-console.log('  4. evaluate_spend_policy()    - Pre-settlement spend guardrail');
-console.log('  5. create_guarded_order()     - SHA-256 idempotency Razorpay order');
-console.log('  6. verify_payment_and_settle()- HMAC SHA-256 settlement audit');
-console.log('----------------------------------------------------------------');
-console.log('\x1b[35m%s\x1b[0m', '🔗 Universal Cloud Gateway: https://razoragent.vercel.app');
-console.log('\x1b[35m%s\x1b[0m', '📡 MCP Endpoint: https://razoragent.vercel.app/api/razoragent/mcp');
-console.log('----------------------------------------------------------------');
-console.log('\x1b[32m%s\x1b[0m', '✔ RazorAgent CLI Gateway initialized successfully.');
-console.log('\x1b[90m%s\x1b[0m', 'Visit https://razoragent.vercel.app to run the interactive AI Buyer Studio!');
+const args = process.argv.slice(2);
+const command = args[0] || 'info';
+
+if (command === 'tools') {
+  console.log('\n\x1b[1m\x1b[34m%s\x1b[0m', '⚡ RazorAgent MCP Commerce Tools:');
+  console.log('  • search_products(query, category, max_price)');
+  console.log('  • get_product_details(product_id)');
+  console.log('  • calculate_cart_quote(items, coupon_code)');
+  console.log('  • evaluate_spend_policy(cart_id)');
+  console.log('  • create_guarded_order(cart_id, idempotency_key)');
+  console.log('  • verify_payment_and_settle(order_id, payment_id, signature)\n');
+  process.exit(0);
+}
+
+// Minimalist, Clean Production Banner (Like Vercel / Stripe CLI)
+console.log('\n\x1b[1m\x1b[34m⚡ RazorAgent\x1b[0m \x1b[90mby\x1b[0m \x1b[1mResence\x1b[0m \x1b[32m(v1.0.3 - Production Ready)\x1b[0m');
+console.log('\x1b[90mBounded Model Context Protocol Gateway for Autonomous AI Buyers\x1b[0m\n');
+
+console.log('  \x1b[32m✔\x1b[0m MCP JSON-RPC Server : \x1b[36mhttps://razoragent.vercel.app/api/razoragent/mcp\x1b[0m');
+console.log('  \x1b[32m✔\x1b[0m Policy Guardrails   : \x1b[32mACTIVE\x1b[0m (₹5,000 Spend Cap · 3 SKU Bounds)');
+console.log('  \x1b[32m✔\x1b[0m Idempotency Engine  : \x1b[32mLOCKED\x1b[0m (SHA-256 Anti-Double Billing)');
+console.log('  \x1b[32m✔\x1b[0m Razorpay Adapter    : \x1b[32mREADY\x1b[0m (Dual-Mode: Sandbox / Live)\n');
+
+console.log('\x1b[90mTo launch the interactive AI Studio, visit:\x1b[0m \x1b[4mhttps://razoragent.vercel.app\x1b[0m\n');
