@@ -159,9 +159,15 @@ export const MERCHANT_CATALOG: ProductItem[] = [
   }
 ];
 
-export const AVAILABLE_COUPONS: Record<string, { discountPercent?: number; flatDiscountINR?: number; minSpendINR: number }> = {
+export const AVAILABLE_COUPONS: Record<string, any> = {
   'AGENT500': { flatDiscountINR: 500, minSpendINR: 2500 },
-  'BUILD2026': { discountPercent: 15, minSpendINR: 2000 },
+  'RESENCE2026': {
+    code: 'RESENCE2026',
+    discountPercent: 15,
+    maxDiscountINR: 1000,
+    minCartValueINR: 2000,
+    description: '15% Off (Max ₹1000) on cart > ₹2000',
+  },
   'COFFEE100': { flatDiscountINR: 100, minSpendINR: 500 },
   'FIT10': { discountPercent: 10, minSpendINR: 1500 },
   'DESK200': { flatDiscountINR: 200, minSpendINR: 1000 },

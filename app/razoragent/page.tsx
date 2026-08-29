@@ -238,7 +238,7 @@ export default function RazorAgentPage() {
             <span className="text-[#3395FF] font-extrabold tracking-wider">RESENCE</span>
           </div>
           <p className="text-[11px] text-slate-400">
-            Engineered by Piyush Singh · Razorpay AI Buildathon 2026
+            Engineered by Piyush Singh · Enterprise MCP Commerce Gateway
           </p>
         </div>
       </footer>

@@ -1,9 +1,7 @@
-# ⚡ RazorAgent by Resence: Bounded MCP Commerce & Settlement Gateway for Autonomous AI Buyers
+# ⚡ RazorAgent by Resence
 
-> **Razorpay AI Buildathon 2026 Submission**  
-> **Track 01:** AI Growth & Agentic Commerce  
-> **Author & Brand:** Piyush Singh (Resence)  
-> **Target Role:** AI Builder Intern (Razorpay Bangalore)  
+> **Bounded Model Context Protocol (MCP) Commerce & Settlement Gateway for Autonomous AI Buyers**  
+> **Engineered by:** Resence · Piyush Singh  
 > **Live Production Gateway:** [https://razoragent.vercel.app](https://razoragent.vercel.app)  
 > **NPM Package Registry:** [https://www.npmjs.com/package/razoragent](https://www.npmjs.com/package/razoragent)  
 > **MCP JSON-RPC Endpoint:** `https://razoragent.vercel.app/api/razoragent/mcp`  
@@ -23,7 +21,7 @@ However, letting AI agents interact directly with legacy checkout endpoints crea
 3. **Unbounded Spending**: No mathematical guarantee that an agent won't exceed user budgets or liquidate inventory.
 4. **Lack of Standardized Tooling**: Fragile web scraping instead of structured tool interfaces.
 
-**RazorAgent** bridges this gap. It turns any merchant catalog into a standardized **Model Context Protocol (MCP)** server, enabling AI shopping agents to discover products, compute tax-accurate quotes, and complete transactions through **Razorpay APIs**—backed by **deterministic mathematical guardrails** and **SHA-256 cryptographic idempotency locks**.
+**RazorAgent by Resence** bridges this gap. It turns any merchant catalog into a standardized **Model Context Protocol (MCP)** server, enabling AI shopping agents to discover products, compute tax-accurate quotes, and complete transactions through **Razorpay APIs**—backed by **deterministic mathematical guardrails** and **SHA-256 cryptographic idempotency locks**.
 
 ---
 
@@ -83,23 +81,21 @@ RazorAgent exposes 6 standard Model Context Protocol tools via JSON-RPC 2.0 (`/a
 
 ---
 
-## ⚡ 4. What Broke at 2 AM & How We Got Out
+## ⚡ 4. High-Availability Engineering: The Concurrency Challenge
 
-> **The Question (Razorpay Form Q6):** *"What broke at 2 AM, and how did you solve it?"*
+### The Problem: The LLM Non-Deterministic Retry Race Condition
+During stress testing with concurrent autonomous shopping agents, simulated network jitter (1.5-second latency on order creation) triggered a critical issue:
 
-### The Incident: The LLM Non-Deterministic Retry Race Condition
-During stress testing with concurrent autonomous shopping agents, simulated network jitter (1.5-second latency on order creation) triggered a catastrophic failure.
-
-The AI Buyer Agent assumed the request had timed out, hallucinatively mutated its nonce, and fired a concurrent retry of `create_guarded_order`. Because standard payment deduplication relied on client-supplied tokens, both requests reached the order creation pipeline 20 milliseconds apart, generating **two separate Razorpay Orders for a single cart**.
+The AI Buyer Agent assumed the request had timed out, hallucinatively mutated its nonce, and fired a concurrent retry of `create_guarded_order`. Because standard payment deduplication relied on client-supplied tokens, both requests reached the order creation pipeline 20 milliseconds apart, generating duplicate orders for a single cart.
 
 ### The Engineering Solution:
 
-1. **Canonical SHA-256 Fingerprinting:** We created an immutable payload fingerprint:
+1. **Canonical SHA-256 Fingerprinting:** An immutable payload fingerprint:
 ```
 Hash = SHA256(agent_id + canonical_sorted_cart_items + total_amount + time_window)
 ```
 
-2. **Two-Phase Concurrency Latch:** Implemented in-memory promise locking with atomic state transitions:
+2. **Two-Phase Concurrency Latch:** In-memory promise locking with atomic state transitions:
 ```
 INITIATED ───► LOCKED ───► ORDER_CREATED ───► CAPTURED
 ```
@@ -111,9 +107,7 @@ Any concurrent thread hitting the gateway while an order is in-flight is held on
 
 ---
 
-## 🏬 5. How Razorpay Merchants Deploy RazorAgent
-
-RazorAgent is designed for 1-minute merchant onboarding:
+## 🏬 5. How Merchants Deploy RazorAgent
 
 ```typescript
 // Example: Exposing RazorAgent MCP tools on any Next.js / Express merchant backend
@@ -122,9 +116,9 @@ import { handleMCPRequest } from 'razoragent';
 export async function POST(req: Request) {
   const jsonRpcBody = await req.json();
   const response = await handleMCPRequest(jsonRpcBody, {
-    maxSpendCapINR: 5000,
+    maxSpendLimitINR: 5000,
     allowedCategories: ['electronics', 'apparel', 'specialty-coffee'],
-    maxQuantityPerSKU: 3
+    maxQuantityPerItem: 3
   });
   return Response.json(response);
 }
@@ -142,24 +136,10 @@ Running RazorAgent Automated Test Suite...
 Summary: 5/5 passed (100% Assertion Rate)
 
 [PASSED] TEST_01_HAPPY_PATH: Happy Path Autonomous Agent Checkout (93ms)
-   Expected: Status: SUCCESS, Order ID generated with prefix "order_"
-   Actual:   Status: SUCCESS, Order ID: order_h55zckrbhgp
-
 [PASSED] TEST_02_BUDGET_GUARDRAIL: Deterministic Budget Cap Enforcement (2ms)
-   Expected: Blocked with reasonCode: BUDGET_EXCEEDED, Zero Razorpay orders generated
-   Actual:   Blocked: true, ReasonCode: BUDGET_EXCEEDED
-
 [PASSED] TEST_03_QUANTITY_GUARDRAIL: SKU Hoarding & Quantity Bounds Enforcement (1ms)
-   Expected: Blocked with reasonCode: QUANTITY_LIMIT_EXCEEDED
-   Actual:   Blocked: true, ReasonCode: QUANTITY_LIMIT_EXCEEDED
-
-[PASSED] TEST_04_2AM_RACE_CONDITION: 2 AM Concurrency & Duplicate Retry Suppression (0ms)
-   Expected: Duplicate request intercepted by SHA-256 Idempotency Lock with single unified Razorpay order
-   Actual:   Order 1 ID: order_2z05ux1m93v (Cached: false), Order 2 ID: order_2z05ux1m93v (Cached: true)
-
+[PASSED] TEST_04_2AM_RACE_CONDITION: Concurrency & Duplicate Retry Suppression (0ms)
 [PASSED] TEST_05_HMAC_WEBHOOK_VERIFY: HMAC-SHA256 Cryptographic Webhook & Settlement Verifier (1ms)
-   Expected: Valid signature returns TRUE, tampered signature returns FALSE
-   Actual:   Valid Check: true, Tampered Rejection: true
 ```
 
 ---
@@ -169,36 +149,20 @@ Summary: 5/5 passed (100% Assertion Rate)
 ### Prerequisites
 * Node.js 18+ / npm
 
-### 1. Clone the repository
+### 1. Install via NPM
+```bash
+npm install razoragent
+```
+
+### 2. Or Clone the Repository
 ```bash
 git clone https://github.com/Piyush-Thakur7/razoragent.git
 cd razoragent
-```
-
-### 2. Install dependencies
-```bash
 npm install
-```
-
-### 3. (Optional) Configure Live Razorpay Keys
-Create a `.env.local` file (High-fidelity sandbox active by default):
-```env
-RAZORPAY_KEY_ID=rzp_test_yourActualKeyId
-RAZORPAY_KEY_SECRET=yourActualSecret
-```
-
-### 4. Run Development Server
-```bash
 npm run dev
-```
-Open [http://localhost:3000/razoragent](http://localhost:3000/razoragent) to access the interactive Mission Control.
-
-### 5. Run Automated Verification Tests
-```bash
-npx tsx scripts/test-razoragent.ts
 ```
 
 ---
 
 ## 📄 License
-MIT License © 2026 Piyush Singh. Built for Razorpay AI Buildathon Track 01.
+MIT License © 2026 Resence. Open source.
