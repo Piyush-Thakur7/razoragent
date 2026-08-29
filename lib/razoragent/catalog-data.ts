@@ -121,6 +121,43 @@ export const MERCHANT_CATALOG: ProductItem[] = [
     eligibleCoupons: ['TRAVEL15']
   },
   {
+    id: 'prod_app_08',
+    name: 'Grammarly Business Annual Software License',
+    category: 'software-licenses',
+    price: 12000,
+    rating: 4.8,
+    reviewCount: 310,
+    stock: 50,
+    description: 'Enterprise AI writing assistant license for teams with real-time tone detection, brand style guides, and snippet shortcuts.',
+    specs: {
+      seats: 'Up to 5 team members',
+      billing: 'Annual upfront',
+      support: 'Priority 24/7 SLA'
+    },
+    tags: ['software', 'license', 'ai', 'productivity', 'writing', 'saas'],
+    image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=600&q=80',
+    eligibleCoupons: ['SAAS15']
+  },
+  {
+    id: 'prod_ph_09',
+    name: 'Apple iPhone 16 Pro (128GB - Natural Titanium)',
+    category: 'electronics',
+    price: 69999,
+    rating: 4.9,
+    reviewCount: 890,
+    stock: 6,
+    description: 'Flagship 5G smartphone with A18 Pro chip, 48MP Fusion camera system, Camera Control, and aerospace-grade titanium design.',
+    specs: {
+      chip: 'A18 Pro with 6-core GPU',
+      display: '6.3-inch Super Retina XDR OLED',
+      camera: '48MP Main + 12MP 5x Telephoto',
+      battery: 'Up to 27 hours video playback'
+    },
+    tags: ['phone', 'smartphone', 'iphone', 'apple', 'mobile', 'electronics', '5g', 'flagship'],
+    image: 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?auto=format&fit=crop&w=600&q=80',
+    eligibleCoupons: ['PREMIUM10']
+  },
+  {
     id: 'prod_mat_07',
     name: 'Nordic Wool & Natural Rubber Desk Mat (Extra Large)',
     category: 'home-office',

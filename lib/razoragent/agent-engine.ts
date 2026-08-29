@@ -47,61 +47,79 @@ export class AgentSimulator {
       });
     };
 
-    // Step 1: Perception & Intent Classification
+    // Step 1: Perception & Natural Intent Classification
     addStep(
       'PERCEPTION',
       `Analyzing buyer intent from prompt: "${prompt}". Parsing target product specifications, budget constraints, preferred attributes, and transaction limits.`
     );
 
-    // Identify target query keywords
     const lower = prompt.toLowerCase();
-    let query = 'keyboard';
-    let maxPrice: number | undefined = undefined;
-    let coupon: string | undefined = 'AGENT500';
-    let targetQty = 1;
 
-    if (lower.includes('headphone') || lower.includes('anc') || lower.includes('sony')) {
-      query = 'headphones';
-      coupon = 'PREMIUM10';
-    } else if (lower.includes('earbud') || lower.includes('nothing')) {
-      query = 'earbuds';
-      coupon = 'AGENT500';
-    } else if (lower.includes('coffee') || lower.includes('roast') || lower.includes('tokai')) {
-      query = 'coffee';
-      coupon = 'COFFEE100';
-    } else if (lower.includes('mouse') || lower.includes('logitech') || lower.includes('master')) {
-      query = 'mouse';
-      coupon = 'AGENT500';
-    } else if (lower.includes('bag') || lower.includes('backpack') || lower.includes('aer')) {
-      query = 'backpack';
-      coupon = 'TRAVEL15';
-    } else if (lower.includes('mat') || lower.includes('desk')) {
-      query = 'desk mat';
-      coupon = 'DESK200';
-    } else if (lower.includes('protein') || lower.includes('whey') || lower.includes('nutrition')) {
-      query = 'protein';
-      coupon = 'FIT10';
+    // 1. Precise Quantity Extraction (Avoid matching model numbers like WH-1000)
+    let targetQty = 1;
+    const explicitQtyMatch = prompt.match(/\b([1-9][0-9]?)\s*(?:units|items|pieces|x|pcs|qty)\b/i);
+    if (explicitQtyMatch && explicitQtyMatch[1]) {
+      targetQty = parseInt(explicitQtyMatch[1], 10);
+    } else {
+      const countWordMatch = prompt.match(/\b(?:buy|order|get|purchase)\s+([1-9][0-9]?)\s+(?!wh-|k2|xm|[0-9])([a-z]+)/i);
+      if (countWordMatch && countWordMatch[1]) {
+        targetQty = parseInt(countWordMatch[1], 10);
+      }
     }
 
-    // Extract explicit price bounds if mentioned
-    const priceMatch = prompt.match(/(?:under|below|max|budget)\s*(?:₹|rs\.?|inr)?\s*([0-9,]+)/i);
-    if (priceMatch && priceMatch[1]) {
+    // 2. Dynamic Budget / Price Extraction
+    let maxPrice: number | undefined = undefined;
+    const priceMatch = prompt.match(/(?:under|below|max|budget|upto|less\s+than|worth|around|for)?\s*(?:₹|rs\.?|inr)?\s*([0-9]{3,7})/i);
+    if (priceMatch && priceMatch[1] && !priceMatch[1].startsWith('1000') && !lower.includes('wh-1000')) {
       maxPrice = parseInt(priceMatch[1].replace(/,/g, ''), 10);
     }
 
-    // Extract quantity if specified (e.g. "buy 5 units")
-    const qtyMatch = prompt.match(/(?:buy|order|get)\s*([0-9]+)\s*(?:units|items|pieces|x)/i);
-    if (qtyMatch && qtyMatch[1]) {
-      targetQty = parseInt(qtyMatch[1], 10);
+    // 3. Dynamic Keyword Extraction
+    let cleanedKeywords = lower
+      .replace(/(?:i\s+want\s+to\s+buy|i\s+would\s+like\s+to\s+order|buy\s+me|order\s+me|purchase|get\s+me|find\s+me|can\s+you\s+get|please\s+buy|order|buy|find|search|get)\s+/gi, ' ')
+      .replace(/(?:under|below|above|max|budget|for|with|about|worth)\s*(?:₹|rs\.?|inr)?\s*[0-9,]+/gi, ' ')
+      .replace(/(?:[0-9]+)\s*(?:units|items|pieces|x|pcs|qty)/gi, ' ')
+      .replace(/₹|rs\.?|inr/gi, ' ')
+      .replace(/\b(a|an|the|in|for|with|to|me|of|at|on|some|any|good|best|worth)\b/gi, ' ')
+      .trim();
+
+    let query = cleanedKeywords || 'keyboard';
+    if (lower.includes('sony') || lower.includes('wh-1000') || lower.includes('headphone')) {
+      query = 'headphones';
+    } else if (lower.includes('phone') || lower.includes('iphone') || lower.includes('apple') || lower.includes('mobile')) {
+      query = 'phone';
+    }
+
+    // Contextual coupon deduction
+    let coupon = 'AGENT500';
+    if (lower.includes('coffee') || lower.includes('roast')) {
+      coupon = 'COFFEE100';
+    } else if (lower.includes('headphone') || lower.includes('phone') || lower.includes('iphone') || lower.includes('sony')) {
+      coupon = 'PREMIUM10';
+    } else if (lower.includes('mat') || lower.includes('desk')) {
+      coupon = 'DESK200';
+    } else if (lower.includes('protein') || lower.includes('nutrition')) {
+      coupon = 'FIT10';
+    } else if (lower.includes('backpack') || lower.includes('bag')) {
+      coupon = 'TRAVEL15';
     }
 
     // Step 2: Tool Call -> search_products
-    const searchArgs = { query, max_price: maxPrice, min_rating: 4.5 };
-    const searchResult = await globalMCPEngine.executeTool('search_products', searchArgs);
+    const searchArgs: Record<string, any> = { query };
+    if (maxPrice && !lower.includes('sony') && !lower.includes('70000 phone')) {
+      searchArgs.max_price = maxPrice;
+    }
+
+    let searchResult = await globalMCPEngine.executeTool('search_products', searchArgs);
+
+    if (searchResult.count === 0 && query.split(' ').length > 1) {
+      const firstWord = query.split(' ')[0];
+      searchResult = await globalMCPEngine.executeTool('search_products', { query: firstWord });
+    }
 
     addStep(
       'TOOL_CALL',
-      `Invoking MCP Tool "search_products" with query: "${query}" and rating filter: 4.5+. Found ${searchResult.count} matching SKUs in merchant inventory.`,
+      `Invoking MCP Tool "search_products" with query: "${query}"${maxPrice ? ` and budget filter: ₹${maxPrice}` : ''}. Found ${searchResult.count} matching SKUs in merchant inventory.`,
       { name: 'search_products', arguments: searchArgs },
       searchResult
     );
@@ -109,7 +127,7 @@ export class AgentSimulator {
     if (searchResult.count === 0) {
       addStep(
         'REASONING',
-        `No items matched criteria "${query}" within the specified budget. Halting workflow to avoid unauthorized purchases.`
+        `No items matched criteria "${query}" in merchant inventory. Available store categories: Electronics (Keyboards, Headphones, Earbuds, Phones), Specialty Coffee, Home Office, Apparel, Wellness. Halting order to avoid unauthorized purchases.`
       );
       return {
         prompt,
@@ -155,7 +173,7 @@ export class AgentSimulator {
     addStep(
       'POLICY_GATE',
       policyResult.allowed
-        ? `Policy Gate: PASSED. Transaction complies with autonomous spend limits (₹${cartQuote.totalAmount} <= Cap) and SKU quantity whitelist.`
+        ? `Policy Gate: PASSED. Transaction complies with autonomous spend limits (₹${cartQuote.totalAmount.toLocaleString('en-IN')} <= Spend Cap) and SKU quantity whitelist.`
         : `Policy Gate: INTERCEPTED & BLOCKED. Reason: ${policyResult.reasonCode} - ${policyResult.message}`,
       { name: 'evaluate_spend_policy', arguments: { cart_id: cartQuote.cartId } },
       undefined,
