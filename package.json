@@ -1,10 +1,14 @@
 {
   "name": "razoragent",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Bounded Model Context Protocol (MCP) Commerce & Settlement Gateway for Autonomous AI Buyers",
   "main": "lib/razoragent/index.ts",
   "types": "lib/razoragent/index.ts",
+  "bin": {
+    "razoragent": "./bin/cli.js"
+  },
   "files": [
+    "bin",
     "lib",
     "scripts",
     "README.md"
