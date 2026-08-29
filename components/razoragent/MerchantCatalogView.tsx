@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Package, Tag, Star, Plus, Search, Edit2, Check, Sparkles, ArrowRight, X, Image as ImageIcon } from 'lucide-react';
 import { MERCHANT_CATALOG, AVAILABLE_COUPONS } from '@/lib/razoragent/catalog-data';
-import { ProductItem } from '@/lib/razoragent/types';
+import { ProductItem, ProductCategory } from '@/lib/razoragent/types';
 
 interface MerchantCatalogViewProps {
   onSelectProductToTest?: (productName: string) => void;
@@ -18,7 +18,7 @@ export default function MerchantCatalogView({ onSelectProductToTest }: MerchantC
 
   // New Product Form State
   const [newName, setNewName] = useState('');
-  const [newCategory, setNewCategory] = useState('electronics');
+  const [newCategory, setNewCategory] = useState<string>('electronics');
   const [newPrice, setNewPrice] = useState(2499);
   const [newStock, setNewStock] = useState(20);
   const [newImage, setNewImage] = useState('https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&auto=format&fit=crop&q=80');
@@ -54,14 +54,16 @@ export default function MerchantCatalogView({ onSelectProductToTest }: MerchantC
     const newProduct: ProductItem = {
       id: `prod_custom_${Date.now()}`,
       name: newName.trim(),
-      category: newCategory.trim().toLowerCase(),
+      category: newCategory.trim().toLowerCase() as ProductCategory,
       price: Number(newPrice),
       stock: Number(newStock),
       rating: 4.9,
       reviewCount: 1,
       image: newImage.trim() || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&auto=format&fit=crop&q=80',
       description: `Custom merchant product added live to MCP inventory.`,
+      specs: { 'Custom Item': 'Live Added' },
       tags: [newCategory.toLowerCase(), 'custom'],
+      eligibleCoupons: ['AGENT500', 'BUILD2026'],
     };
 
     setCatalog((prev) => [newProduct, ...prev]);

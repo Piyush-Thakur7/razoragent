@@ -9,7 +9,8 @@ export type ProductCategory =
   | 'wellness'
   | 'specialty-coffee'
   | 'home-office'
-  | 'software-licenses';
+  | 'software-licenses'
+  | (string & {});
 
 export interface ProductItem {
   id: string;

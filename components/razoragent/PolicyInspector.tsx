@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Sliders, Shield, Tag, DollarSign, Check, Info, Plus, X } from 'lucide-react';
-import { GuardrailPolicyConfig } from '@/lib/razoragent/types';
+import { GuardrailPolicyConfig, ProductCategory } from '@/lib/razoragent/types';
 
 interface PolicyInspectorProps {
   onConfigChange: (config: GuardrailPolicyConfig) => void;
@@ -11,7 +11,7 @@ interface PolicyInspectorProps {
 export default function PolicyInspector({ onConfigChange }: PolicyInspectorProps) {
   const [maxSpend, setMaxSpend] = useState<number>(5000);
   const [maxQuantity, setMaxQuantity] = useState<number>(3);
-  const [categories, setCategories] = useState<string[]>([
+  const [categories, setCategories] = useState<ProductCategory[]>([
     'electronics',
     'specialty-coffee',
     'wellness',
@@ -21,12 +21,14 @@ export default function PolicyInspector({ onConfigChange }: PolicyInspectorProps
   const [newCategoryInput, setNewCategoryInput] = useState('');
   const [isSaved, setIsSaved] = useState(false);
 
-  const triggerUpdate = (newSpend: number, newQty: number, newCats: string[]) => {
+  const triggerUpdate = (newSpend: number, newQty: number, newCats: ProductCategory[]) => {
     setIsSaved(true);
     onConfigChange({
-      maxSpendPerTransactionINR: newSpend,
-      maxQuantityPerSKU: newQty,
+      maxSpendLimitINR: newSpend,
+      maxQuantityPerItem: newQty,
       allowedCategories: newCats,
+      requireHumanApprovalAboveINR: 10000,
+      idempotencyWindowSeconds: 60,
     });
     setTimeout(() => setIsSaved(false), 2000);
   };
@@ -41,7 +43,7 @@ export default function PolicyInspector({ onConfigChange }: PolicyInspectorProps
     triggerUpdate(maxSpend, val, categories);
   };
 
-  const toggleCategory = (cat: string) => {
+  const toggleCategory = (cat: ProductCategory) => {
     const nextCats = categories.includes(cat)
       ? categories.filter((c) => c !== cat)
       : [...categories, cat];
@@ -51,7 +53,7 @@ export default function PolicyInspector({ onConfigChange }: PolicyInspectorProps
 
   const handleAddCategory = (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmed = newCategoryInput.trim().toLowerCase();
+    const trimmed = newCategoryInput.trim().toLowerCase() as ProductCategory;
     if (!trimmed || categories.includes(trimmed)) return;
     const next = [...categories, trimmed];
     setCategories(next);
