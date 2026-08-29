@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { X, CheckCircle2, XCircle, Activity, ShieldCheck, Clock, ExternalLink } from 'lucide-react';
-import { TestResult } from '@/lib/razoragent/test-suite';
+import { TestResult } from '@/lib/razoragent/types';
 
 interface BenchmarkModalProps {
   isOpen: boolean;
