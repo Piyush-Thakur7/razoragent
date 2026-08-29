@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Terminal, Send, Sparkles, CheckCircle2, ChevronDown, ChevronRight, Clock, ShieldAlert, Cpu, ArrowRight } from 'lucide-react';
+import { Terminal, Send, Sparkles, CheckCircle2, ChevronDown, ChevronRight, Clock, ShieldAlert, Cpu, ArrowRight, Layers, ShieldCheck, Zap } from 'lucide-react';
 import { AgentSimulationStep, SimulationResult } from '@/lib/razoragent/types';
 
 interface AgentTerminalProps {
@@ -14,22 +14,22 @@ const PRESET_PROMPTS = [
   {
     label: '🟢 Happy Path Checkout',
     prompt: 'Find me a Keychron mechanical keyboard under ₹4,000 and complete checkout with coupon AGENT500',
-    desc: 'Passes all policies & creates Razorpay Order',
+    desc: 'Full flow: Catalog $\\rightarrow$ Quote $\\rightarrow$ Guardrail $\\rightarrow$ Razorpay Order',
   },
   {
     label: '🔴 Trigger Budget Guardrail',
     prompt: 'Buy Sony WH-1000XM5 active noise cancelling headphones for ₹18,990',
-    desc: 'Exceeds autonomous ₹5,000 spend cap',
+    desc: 'Exceeds autonomous ₹5,000 spend cap $\\rightarrow$ Blocked with reason code',
   },
   {
     label: '🟡 Trigger Quantity Guardrail',
     prompt: 'Order 8 units of Blue Tokai coffee beans with discount coupon COFFEE100',
-    desc: 'Exceeds max 3 units/item safety limit',
+    desc: 'Exceeds max 3 units/item safety limit $\\rightarrow$ SKU hoarding blocked',
   },
   {
     label: '🟢 Earbuds with Discount',
     prompt: 'Search Nothing Ear (2) earbuds under ₹5,000 and calculate discounted cart quote',
-    desc: 'Evaluates inventory, coupon & tax',
+    desc: 'Evaluates inventory, 18% GST tax, and promo code validation',
   },
 ];
 
@@ -67,6 +67,12 @@ export default function AgentTerminal({ onRunSimulation, isLoading, simulationRe
     }
   };
 
+  // Check stage completion for the visual stepper
+  const hasPerception = simulationResult?.steps.some((s) => s.phase === 'PERCEPTION');
+  const hasTools = simulationResult?.steps.some((s) => s.phase === 'TOOL_CALL');
+  const hasPolicy = simulationResult?.steps.some((s) => s.phase === 'POLICY_GATE');
+  const hasSettlement = simulationResult?.steps.some((s) => s.phase === 'SETTLEMENT');
+
   return (
     <div className="flex flex-col h-full bg-[#0B0F19] border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
       
@@ -74,11 +80,11 @@ export default function AgentTerminal({ onRunSimulation, isLoading, simulationRe
       <div className="px-4 py-3 bg-[#0E1322] border-b border-slate-800 flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <div className="flex space-x-1.5">
-            <div className="w-3 h-3 rounded-full bg-rose-500/80"></div>
-            <div className="w-3 h-3 rounded-full bg-amber-500/80"></div>
-            <div className="w-3 h-3 rounded-full bg-emerald-500/80"></div>
+            <div className="w-2.5 h-2.5 rounded-full bg-rose-500/80"></div>
+            <div className="w-2.5 h-2.5 rounded-full bg-amber-500/80"></div>
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/80"></div>
           </div>
-          <div className="h-4 w-[1px] bg-slate-700 mx-1"></div>
+          <div className="h-3.5 w-[1px] bg-slate-700 mx-1"></div>
           <div className="flex items-center space-x-1.5 text-xs font-mono font-semibold text-slate-300">
             <Terminal className="w-3.5 h-3.5 text-[#3395FF]" />
             <span>Autonomous AI Buyer Terminal</span>
@@ -92,23 +98,56 @@ export default function AgentTerminal({ onRunSimulation, isLoading, simulationRe
               {simulationResult.totalDurationMs}ms
             </span>
             {simulationResult.success ? (
-              <span className="px-2 py-0.5 rounded text-[11px] bg-emerald-950/60 text-emerald-400 border border-emerald-800 flex items-center gap-1 font-semibold">
-                <CheckCircle2 className="w-3 h-3" /> PASSED
+              <span className="px-2 py-0.5 rounded text-[11px] bg-emerald-950/80 text-emerald-400 border border-emerald-800 flex items-center gap-1 font-semibold">
+                <CheckCircle2 className="w-3 h-3" /> ORDER CREATED
               </span>
             ) : (
-              <span className="px-2 py-0.5 rounded text-[11px] bg-rose-950/60 text-rose-400 border border-rose-800 flex items-center gap-1 font-semibold">
-                <ShieldAlert className="w-3 h-3" /> BLOCKED BY POLICY
+              <span className="px-2 py-0.5 rounded text-[11px] bg-rose-950/80 text-rose-400 border border-rose-800 flex items-center gap-1 font-semibold">
+                <ShieldAlert className="w-3 h-3" /> INTERCEPTED
               </span>
             )}
           </div>
         )}
       </div>
 
+      {/* Visual Pipeline Stepper */}
+      <div className="px-4 py-2.5 bg-[#080B14] border-b border-slate-800/80">
+        <div className="grid grid-cols-4 gap-1 text-[11px] font-mono">
+          <div className={`p-1.5 rounded-lg border text-center transition flex items-center justify-center gap-1 ${
+            isLoading || hasPerception ? 'bg-purple-950/40 border-purple-800 text-purple-300 font-bold' : 'bg-[#0E1322] border-slate-800 text-slate-500'
+          }`}>
+            <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
+            <span className="truncate">1. Intent</span>
+          </div>
+
+          <div className={`p-1.5 rounded-lg border text-center transition flex items-center justify-center gap-1 ${
+            hasTools ? 'bg-blue-950/40 border-blue-800 text-[#3395FF] font-bold' : 'bg-[#0E1322] border-slate-800 text-slate-500'
+          }`}>
+            <span className="w-1.5 h-1.5 rounded-full bg-[#3395FF]"></span>
+            <span className="truncate">2. MCP Tool</span>
+          </div>
+
+          <div className={`p-1.5 rounded-lg border text-center transition flex items-center justify-center gap-1 ${
+            hasPolicy ? (simulationResult?.policyDecision?.allowed ? 'bg-emerald-950/40 border-emerald-800 text-emerald-300 font-bold' : 'bg-rose-950/40 border-rose-800 text-rose-300 font-bold') : 'bg-[#0E1322] border-slate-800 text-slate-500'
+          }`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${simulationResult?.policyDecision?.allowed ? 'bg-emerald-400' : 'bg-rose-400'}`}></span>
+            <span className="truncate">3. Guardrail</span>
+          </div>
+
+          <div className={`p-1.5 rounded-lg border text-center transition flex items-center justify-center gap-1 ${
+            hasSettlement ? 'bg-emerald-950/40 border-emerald-800 text-emerald-300 font-bold' : 'bg-[#0E1322] border-slate-800 text-slate-500'
+          }`}>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+            <span className="truncate">4. Razorpay</span>
+          </div>
+        </div>
+      </div>
+
       {/* Preset Badges */}
       <div className="p-3 bg-[#0B0E17] border-b border-slate-800/80">
         <div className="text-[11px] font-mono text-slate-400 mb-2 flex items-center gap-1">
           <Sparkles className="w-3 h-3 text-[#3395FF]" />
-          <span>Quick Intent Presets (Simulate Real Agent Queries):</span>
+          <span>Quick Intent Presets (Simulate Real AI Buyer Requests):</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {PRESET_PROMPTS.map((preset, idx) => (
@@ -194,7 +233,7 @@ export default function AgentTerminal({ onRunSimulation, isLoading, simulationRe
                     className="flex items-center space-x-1 text-[11px] text-[#3395FF] hover:underline font-mono"
                   >
                     {isExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-                    <span>{isExpanded ? 'Hide Raw Protocol Payload' : 'View Protocol JSON Payload'}</span>
+                    <span>{isExpanded ? 'Hide Protocol Payload' : 'View Protocol JSON Payload'}</span>
                   </button>
 
                   {isExpanded && (
@@ -225,7 +264,7 @@ export default function AgentTerminal({ onRunSimulation, isLoading, simulationRe
             type="text"
             value={inputPrompt}
             onChange={(e) => setInputPrompt(e.target.value)}
-            placeholder="Give instructions to AI Buyer Agent (e.g., 'Buy mechanical keyboard under ₹4,000')..."
+            placeholder="Instruct AI Buyer Agent (e.g. 'Find mechanical keyboard under ₹4,000')..."
             className="w-full pl-3 pr-24 py-2.5 bg-[#080B14] border border-slate-700 focus:border-[#0C8CE9] rounded-xl text-slate-200 placeholder-slate-500 text-xs font-sans focus:outline-none transition"
             disabled={isLoading}
           />

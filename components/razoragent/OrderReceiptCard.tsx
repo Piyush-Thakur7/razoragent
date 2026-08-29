@@ -1,24 +1,23 @@
 'use client';
 
 import React, { useState } from 'react';
-import { CreditCard, CheckCircle, ExternalLink, ShieldCheck, QrCode, ArrowUpRight, Copy, Check } from 'lucide-react';
+import { CreditCard, CheckCircle, ExternalLink, ShieldCheck, QrCode, ArrowUpRight, Copy, Check, Lock, Zap } from 'lucide-react';
 import { RazorpayOrderResponse, CartQuote } from '@/lib/razoragent/types';
 
 interface OrderReceiptCardProps {
   order: RazorpayOrderResponse | null;
   cart: CartQuote | null;
-  onVerifyPayment: (orderId: string, paymentId: string) => Promise<void>;
+  onOpenCheckoutModal: () => void;
   verificationResult: { verified: boolean; status: string; signature?: string } | null;
 }
 
 export default function OrderReceiptCard({
   order,
   cart,
-  onVerifyPayment,
+  onOpenCheckoutModal,
   verificationResult,
 }: OrderReceiptCardProps) {
   const [copied, setCopied] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false);
 
   if (!order || !cart) {
     return (
@@ -40,13 +39,6 @@ export default function OrderReceiptCard({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleSimulatePayment = async () => {
-    setIsVerifying(true);
-    const mockPaymentId = `pay_${Math.random().toString(36).substring(2, 12)}`;
-    await onVerifyPayment(order.id, mockPaymentId);
-    setIsVerifying(false);
-  };
-
   return (
     <div className="bg-gradient-to-b from-[#0F1629] to-[#0A0D16] border border-[#0C8CE9]/40 rounded-2xl p-5 shadow-2xl space-y-4 relative overflow-hidden">
       
@@ -66,8 +58,12 @@ export default function OrderReceiptCard({
         </div>
 
         <div className="flex items-center space-x-1.5">
-          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-800/80 uppercase">
-            {verificationResult?.status === 'CAPTURED_AND_SETTLED' ? 'PAID & SETTLED' : order.status}
+          <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded uppercase border ${
+            verificationResult?.status === 'CAPTURED_AND_SETTLED'
+              ? 'bg-emerald-950/80 text-emerald-400 border-emerald-800'
+              : 'bg-blue-950/80 text-[#3395FF] border-[#0C8CE9]/40'
+          }`}>
+            {verificationResult?.status === 'CAPTURED_AND_SETTLED' ? 'PAID & CAPTURED' : order.status}
           </span>
         </div>
       </div>
@@ -124,25 +120,13 @@ export default function OrderReceiptCard({
       {/* Action Buttons */}
       <div className="pt-2 border-t border-slate-800 flex flex-col sm:flex-row gap-2">
         <button
-          onClick={handleSimulatePayment}
-          disabled={isVerifying || verificationResult?.status === 'CAPTURED_AND_SETTLED'}
-          className="flex-1 py-2 px-3 rounded-xl bg-gradient-to-r from-[#0C8CE9] to-[#2563EB] hover:from-[#0972BD] hover:to-[#1D4ED8] disabled:opacity-50 text-white text-xs font-semibold flex items-center justify-center space-x-1.5 shadow-lg shadow-[#0C8CE9]/20 transition"
+          onClick={onOpenCheckoutModal}
+          className="flex-1 py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#0C8CE9] to-[#2563EB] hover:from-[#0972BD] hover:to-[#1D4ED8] text-white text-xs font-bold flex items-center justify-center space-x-2 shadow-lg shadow-[#0C8CE9]/30 transition"
         >
-          <ShieldCheck className="w-3.5 h-3.5" />
-          <span>{isVerifying ? 'Verifying HMAC...' : 'Simulate Settlement (HMAC)'}</span>
+          <ShieldCheck className="w-4 h-4" />
+          <span>Launch Razorpay Checkout</span>
+          <ArrowUpRight className="w-3.5 h-3.5" />
         </button>
-
-        {order.payment_link && (
-          <a
-            href={order.payment_link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="py-2 px-3 rounded-xl bg-[#141C30] hover:bg-[#1A2642] text-slate-200 text-xs font-medium flex items-center justify-center space-x-1 border border-slate-700 transition"
-          >
-            <span>Payment Link</span>
-            <ArrowUpRight className="w-3.5 h-3.5 text-[#3395FF]" />
-          </a>
-        )}
       </div>
 
       {/* Verification Stamp */}
@@ -154,7 +138,7 @@ export default function OrderReceiptCard({
         }`}>
           <div className="flex items-center space-x-1.5 font-bold">
             <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-            <span>HMAC SHA-256 Webhook Signature Verified</span>
+            <span>HMAC SHA-256 Webhook Verified</span>
           </div>
           {verificationResult.signature && (
             <p className="text-[10px] text-slate-400 truncate mt-1">
