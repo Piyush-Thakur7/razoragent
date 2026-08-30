@@ -5,6 +5,17 @@ All notable changes to **RazorAgent by Resence** (`razoragent`) will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2] - 2026-08-30
+
+### Fixed
+* **Accurate Status Command SKU Count Display:**
+  - Fixed `DemoCatalogProvider` to return all products when query is empty/wildcard.
+  - `npx razoragent status` now accurately displays `32 product(s) indexed`.
+* **Permissive AI Agent Robots Policy:**
+  - Added `public/robots.txt` and `app/robots.ts` explicitly allowing AI crawlers and MCP clients on `/` and `/api/razoragent/mcp`.
+
+---
+
 ## [1.1.1] - 2026-08-30
 
 ### Fixed
