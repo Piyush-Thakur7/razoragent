@@ -8,6 +8,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ShopifyCatalogProvider = void 0;
+const catalog_provider_1 = require("./catalog-provider");
 class ShopifyCatalogProvider {
     constructor(options = {}) {
         this.storeDomain = (options.storeDomain || process.env.SHOPIFY_STORE_DOMAIN || '').replace(/^https?:\/\//, '').replace(/\/$/, '');
@@ -22,33 +23,52 @@ class ShopifyCatalogProvider {
     }
     async executeGraphQL(query, variables = {}) {
         if (!this.isConfigured()) {
-            throw new Error(`[ShopifyCatalogProvider] Missing SHOPIFY_STORE_DOMAIN or SHOPIFY_STOREFRONT_ACCESS_TOKEN.`);
+            throw new catalog_provider_1.CatalogConnectionError(`Missing SHOPIFY_STORE_DOMAIN or SHOPIFY_STOREFRONT_ACCESS_TOKEN.`, 400);
         }
         const endpoint = `https://${this.storeDomain}/api/${this.apiVersion}/graphql.json`;
-        const response = await fetch(endpoint, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Shopify-Storefront-Access-Token': this.storefrontAccessToken,
-            },
-            body: JSON.stringify({ query, variables }),
-        });
-        if (!response.ok) {
-            throw new Error(`Shopify Storefront GraphQL HTTP Error: ${response.status} ${response.statusText}`);
+        let response;
+        try {
+            response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Shopify-Storefront-Access-Token': this.storefrontAccessToken,
+                },
+                body: JSON.stringify({ query, variables }),
+            });
         }
-        const json = await response.json();
+        catch (netErr) {
+            throw new catalog_provider_1.CatalogConnectionError(`Network error connecting to ${this.storeDomain}: ${netErr.message}`, 503, netErr);
+        }
+        if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+                throw new catalog_provider_1.CatalogConnectionError(`Invalid Shopify Storefront Access Token or unauthorized store domain (HTTP ${response.status} ${response.statusText})`, response.status);
+            }
+            if (response.status === 404) {
+                throw new catalog_provider_1.CatalogConnectionError(`Shopify store domain not found: ${this.storeDomain} (HTTP 404)`, 404);
+            }
+            throw new catalog_provider_1.CatalogConnectionError(`Shopify Storefront API HTTP Error: ${response.status} ${response.statusText}`, response.status);
+        }
+        let json;
+        try {
+            json = await response.json();
+        }
+        catch (parseErr) {
+            throw new catalog_provider_1.CatalogConnectionError(`Invalid JSON returned from Shopify API (${this.storeDomain})`, 502, parseErr);
+        }
         if (json.errors && json.errors.length > 0) {
-            throw new Error(`Shopify GraphQL Error: ${json.errors.map((e) => e.message).join(', ')}`);
+            const errorMsg = json.errors.map((e) => e.message).join(', ');
+            throw new catalog_provider_1.CatalogConnectionError(`Shopify GraphQL Error: ${errorMsg}`, 400, json.errors);
         }
         return json.data;
     }
     /**
      * Searches Shopify products using Storefront GraphQL API.
+     * Throws CatalogConnectionError on authentication / network / HTTP failures.
      */
     async searchProducts(query, filters = {}) {
         if (!this.isConfigured()) {
-            console.warn(`[ShopifyCatalogProvider] Storefront credentials not configured.`);
-            return [];
+            throw new catalog_provider_1.CatalogConnectionError('Shopify Storefront credentials are not configured.', 400);
         }
         const searchQuery = query ? `title:*${query}* OR tag:*${query}* OR product_type:*${query}*` : '';
         const gql = `
@@ -94,48 +114,46 @@ class ShopifyCatalogProvider {
         }
       }
     `;
-        try {
-            const data = await this.executeGraphQL(gql, {
-                query: searchQuery || undefined,
-                first: 20,
-            });
-            const items = [];
-            for (const edge of data.products.edges) {
-                const node = edge.node;
-                const rawPrice = parseFloat(node.priceRange?.minVariantPrice?.amount || '0');
-                const price = Math.round(rawPrice);
-                // Filter constraints
-                if (filters.maxPrice && price > filters.maxPrice)
-                    continue;
-                if (filters.category && node.productType.toLowerCase() !== filters.category.toLowerCase())
-                    continue;
-                const imageUrl = node.images?.edges?.[0]?.node?.url || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80';
-                const stock = typeof node.totalInventory === 'number' ? node.totalInventory : 20;
-                items.push({
-                    id: node.id,
-                    name: node.title,
-                    category: (node.productType || 'general').toLowerCase(),
-                    price,
-                    rating: 4.8,
-                    reviewCount: 150,
-                    stock: Math.max(0, stock),
-                    description: node.description || node.title,
-                    specs: {
-                        shopifyId: node.id,
-                        productType: node.productType || 'Standard Item',
-                        variantsCount: String(node.variants?.edges?.length || 1),
-                    },
-                    tags: Array.isArray(node.tags) ? node.tags : [],
-                    image: imageUrl,
-                    eligibleCoupons: ['AGENT500', 'SHOPIFY10'],
-                });
-            }
-            return items;
-        }
-        catch (err) {
-            console.error(`[ShopifyCatalogProvider] Error searching Shopify products:`, err);
+        // Note: Do NOT swallow CatalogConnectionError — re-throw so caller knows auth failed
+        const data = await this.executeGraphQL(gql, {
+            query: searchQuery || undefined,
+            first: 20,
+        });
+        const items = [];
+        if (!data?.products?.edges) {
             return [];
         }
+        for (const edge of data.products.edges) {
+            const node = edge.node;
+            const rawPrice = parseFloat(node.priceRange?.minVariantPrice?.amount || '0');
+            const price = Math.round(rawPrice);
+            // Filter constraints
+            if (filters.maxPrice && price > filters.maxPrice)
+                continue;
+            if (filters.category && node.productType.toLowerCase() !== filters.category.toLowerCase())
+                continue;
+            const imageUrl = node.images?.edges?.[0]?.node?.url || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80';
+            const stock = typeof node.totalInventory === 'number' ? node.totalInventory : 20;
+            items.push({
+                id: node.id,
+                name: node.title,
+                category: (node.productType || 'general').toLowerCase(),
+                price,
+                rating: 4.8,
+                reviewCount: 150,
+                stock: Math.max(0, stock),
+                description: node.description || node.title,
+                specs: {
+                    shopifyId: node.id,
+                    productType: node.productType || 'Standard Item',
+                    variantsCount: String(node.variants?.edges?.length || 1),
+                },
+                tags: Array.isArray(node.tags) ? node.tags : [],
+                image: imageUrl,
+                eligibleCoupons: ['AGENT500', 'SHOPIFY10'],
+            });
+        }
+        return items;
     }
     /**
      * Retrieves single Shopify product details by ID.

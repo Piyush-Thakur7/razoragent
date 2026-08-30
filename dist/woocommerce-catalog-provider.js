@@ -8,6 +8,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WooCommerceCatalogProvider = void 0;
+const catalog_provider_1 = require("./catalog-provider");
 class WooCommerceCatalogProvider {
     constructor(options = {}) {
         this.siteUrl = (options.siteUrl || process.env.WOOCOMMERCE_SITE_URL || '').replace(/\/$/, '');
@@ -22,10 +23,11 @@ class WooCommerceCatalogProvider {
     }
     /**
      * Searches WooCommerce products via /wp-json/wc/v3/products.
+     * Throws CatalogConnectionError on authentication / network / HTTP errors.
      */
     async searchProducts(query, filters = {}) {
         if (!this.isConfigured()) {
-            return [];
+            throw new catalog_provider_1.CatalogConnectionError('WooCommerce credentials (site URL, consumer key, consumer secret) are not configured.', 400);
         }
         const params = new URLSearchParams({
             search: query,
@@ -36,45 +38,63 @@ class WooCommerceCatalogProvider {
             params.append('max_price', String(filters.maxPrice));
         const auth = Buffer.from(`${this.consumerKey}:${this.consumerSecret}`).toString('base64');
         const endpoint = `${this.siteUrl}/wp-json/wc/v3/products?${params.toString()}`;
+        let res;
         try {
-            const res = await fetch(endpoint, {
+            res = await fetch(endpoint, {
                 headers: {
                     Authorization: `Basic ${auth}`,
                     'Content-Type': 'application/json',
                 },
             });
-            if (!res.ok) {
-                throw new Error(`WooCommerce HTTP Error: ${res.status} ${res.statusText}`);
-            }
-            const products = await res.json();
-            return products.map((p) => {
-                const price = Math.round(parseFloat(p.price || p.regular_price || '0'));
-                const imageUrl = p.images?.[0]?.src || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80';
-                const tags = (p.tags || []).map((t) => t.name.toLowerCase());
-                return {
-                    id: String(p.id),
-                    name: p.name,
-                    category: (p.categories?.[0]?.name || 'general').toLowerCase(),
-                    price,
-                    rating: parseFloat(p.average_rating || '4.8'),
-                    reviewCount: p.rating_count || 50,
-                    stock: p.manage_stock ? (p.stock_quantity || 0) : 25,
-                    description: p.short_description?.replace(/<[^>]+>/g, '') || p.description?.replace(/<[^>]+>/g, '') || p.name,
-                    specs: {
-                        sku: p.sku || String(p.id),
-                        type: p.type || 'simple',
-                        permalink: p.permalink || '',
-                    },
-                    tags,
-                    image: imageUrl,
-                    eligibleCoupons: ['AGENT500', 'WOO10'],
-                };
-            });
         }
-        catch (err) {
-            console.error(`[WooCommerceCatalogProvider] Search error:`, err);
+        catch (netErr) {
+            throw new catalog_provider_1.CatalogConnectionError(`Network error connecting to WooCommerce store (${this.siteUrl}): ${netErr.message}`, 503, netErr);
+        }
+        if (!res.ok) {
+            if (res.status === 401 || res.status === 403) {
+                throw new catalog_provider_1.CatalogConnectionError(`Invalid WooCommerce Consumer Key or Secret (HTTP ${res.status} ${res.statusText})`, res.status);
+            }
+            if (res.status === 404) {
+                throw new catalog_provider_1.CatalogConnectionError(`WooCommerce REST endpoint not found at ${this.siteUrl}/wp-json/wc/v3/products (HTTP 404)`, 404);
+            }
+            throw new catalog_provider_1.CatalogConnectionError(`WooCommerce REST API HTTP Error: ${res.status} ${res.statusText}`, res.status);
+        }
+        let products;
+        try {
+            products = await res.json();
+        }
+        catch (parseErr) {
+            throw new catalog_provider_1.CatalogConnectionError(`Invalid JSON returned from WooCommerce API (${this.siteUrl})`, 502, parseErr);
+        }
+        if (!Array.isArray(products)) {
+            if (products?.message) {
+                throw new catalog_provider_1.CatalogConnectionError(`WooCommerce API Error: ${products.message}`, 400, products);
+            }
             return [];
         }
+        return products.map((p) => {
+            const price = Math.round(parseFloat(p.price || p.regular_price || '0'));
+            const imageUrl = p.images?.[0]?.src || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80';
+            const tags = (p.tags || []).map((t) => t.name.toLowerCase());
+            return {
+                id: String(p.id),
+                name: p.name,
+                category: (p.categories?.[0]?.name || 'general').toLowerCase(),
+                price,
+                rating: parseFloat(p.average_rating || '4.8'),
+                reviewCount: p.rating_count || 50,
+                stock: p.manage_stock ? (p.stock_quantity || 0) : 25,
+                description: p.short_description?.replace(/<[^>]+>/g, '') || p.description?.replace(/<[^>]+>/g, '') || p.name,
+                specs: {
+                    sku: p.sku || String(p.id),
+                    type: p.type || 'simple',
+                    permalink: p.permalink || '',
+                },
+                tags,
+                image: imageUrl,
+                eligibleCoupons: ['AGENT500', 'WOO10'],
+            };
+        });
     }
     /**
      * Retrieves single WooCommerce product by ID.

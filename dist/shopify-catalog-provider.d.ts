@@ -21,6 +21,7 @@ export declare class ShopifyCatalogProvider implements CatalogProvider {
     private executeGraphQL;
     /**
      * Searches Shopify products using Storefront GraphQL API.
+     * Throws CatalogConnectionError on authentication / network / HTTP failures.
      */
     searchProducts(query: string, filters?: CatalogSearchFilters): Promise<ProductItem[]>;
     /**

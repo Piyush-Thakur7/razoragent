@@ -29,4 +29,9 @@ export interface CatalogProvider {
      */
     getProviderName(): string;
 }
+export declare class CatalogConnectionError extends Error {
+    statusCode?: number;
+    details?: unknown;
+    constructor(message: string, statusCode?: number, details?: unknown);
+}
 //# sourceMappingURL=catalog-provider.d.ts.map

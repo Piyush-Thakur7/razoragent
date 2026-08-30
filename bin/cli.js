@@ -200,14 +200,22 @@ async function runConnectWizard() {
 
       console.log('\n\x1b[34mTesting live connection to Shopify Storefront API...\x1b[0m');
       const testProvider = new ShopifyCatalogProvider({ storeDomain: domain, storefrontAccessToken: token });
-      const products = await testProvider.searchProducts('');
+      
+      let products;
+      try {
+        products = await testProvider.searchProducts('');
+      } catch (err) {
+        console.log(`\n\x1b[31m✖ Connection failed: ${err.message}. Please check your store domain and access token.\x1b[0m\n`);
+        rl.close();
+        process.exit(1);
+      }
 
-      if (products.length > 0) {
+      if (products && products.length > 0) {
         console.log(`\x1b[32m✔ Connected successfully! Found ${products.length} live product(s) in your Shopify store.\x1b[0m`);
         console.log('\x1b[90mSample SKUs found:\x1b[0m');
         products.slice(0, 3).forEach((p, idx) => console.log(`  ${idx + 1}. [${p.id}] ${p.name} (₹${p.price})`));
       } else {
-        console.log('\x1b[33m⚠ Connected to Storefront API, but 0 published products were returned.\x1b[0m');
+        console.log(`\x1b[33m✔ Connected to ${domain} successfully, but no published products were found. Add products in your store admin, or check that they're published to the Storefront channel.\x1b[0m`);
       }
 
       envUpdates = {
@@ -225,17 +233,27 @@ async function runConnectWizard() {
       if (!siteUrl || !ck || !cs) {
         console.log('\x1b[31m✖ Missing required WooCommerce credentials. Aborting setup.\x1b[0m\n');
         rl.close();
-        return;
+        process.exit(1);
       }
 
       console.log('\n\x1b[34mTesting live connection to WooCommerce REST API...\x1b[0m');
       const testProvider = new WooCommerceCatalogProvider({ siteUrl, consumerKey: ck, consumerSecret: cs });
-      const products = await testProvider.searchProducts('');
+      
+      let products;
+      try {
+        products = await testProvider.searchProducts('');
+      } catch (err) {
+        console.log(`\n\x1b[31m✖ Connection failed: ${err.message}. Please check your store URL, consumer key, and consumer secret.\x1b[0m\n`);
+        rl.close();
+        process.exit(1);
+      }
 
-      if (products.length > 0) {
+      if (products && products.length > 0) {
         console.log(`\x1b[32m✔ Connected successfully! Found ${products.length} product(s) in your WooCommerce store.\x1b[0m`);
+        console.log('\x1b[90mSample SKUs found:\x1b[0m');
+        products.slice(0, 3).forEach((p, idx) => console.log(`  ${idx + 1}. [${p.id}] ${p.name} (₹${p.price})`));
       } else {
-        console.log('\x1b[33m⚠ Connected to WooCommerce API, but 0 products were returned.\x1b[0m');
+        console.log(`\x1b[33m✔ Connected to ${siteUrl} successfully, but no published products were found. Add products in your WooCommerce admin, or verify publish status.\x1b[0m`);
       }
 
       envUpdates = {
@@ -249,7 +267,7 @@ async function runConnectWizard() {
       return;
     }
 
-    // Save to .env.local
+    // Save to .env.local ONLY after successful connection test
     const envLocalPath = path.resolve(process.cwd(), '.env.local');
     let existingContent = '';
     if (fs.existsSync(envLocalPath)) {
@@ -272,6 +290,7 @@ async function runConnectWizard() {
     console.log('Future \x1b[36mnpx razoragent run\x1b[0m commands will now automatically search and purchase from your real store!\n');
   } catch (err) {
     console.error('\x1b[31mSetup Error:\x1b[0m', err.message);
+    process.exit(1);
   } finally {
     rl.close();
   }

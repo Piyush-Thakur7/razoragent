@@ -20,6 +20,7 @@ export declare class WooCommerceCatalogProvider implements CatalogProvider {
     getProviderName(): string;
     /**
      * Searches WooCommerce products via /wp-json/wc/v3/products.
+     * Throws CatalogConnectionError on authentication / network / HTTP errors.
      */
     searchProducts(query: string, filters?: CatalogSearchFilters): Promise<ProductItem[]>;
     /**
