@@ -40,14 +40,6 @@ class GuardrailEngine {
         // Rule 2: Item-level constraints: Category whitelist, Quantity bounds, and Stock
         for (const item of cart.items) {
             const catalogItem = catalog_data_1.MERCHANT_CATALOG.find((p) => p.id === item.productId);
-            if (!catalogItem) {
-                return {
-                    allowed: false,
-                    reasonCode: 'OUT_OF_STOCK',
-                    message: `Product ID "${item.productId}" does not exist in the active merchant catalog.`,
-                    evaluatedAt: timestamp,
-                };
-            }
             // Check item quantity limits (evaluated before spend cap to catch SKU hoarding)
             if (item.quantity > this.config.maxQuantityPerItem) {
                 return {
@@ -62,31 +54,33 @@ class GuardrailEngine {
                     },
                 };
             }
-            // Check category whitelist
-            if (!this.config.allowedCategories.includes(catalogItem.category)) {
-                return {
-                    allowed: false,
-                    reasonCode: 'CATEGORY_PROHIBITED',
-                    message: `Category "${catalogItem.category}" is not in the merchant's approved autonomous sales whitelist.`,
-                    evaluatedAt: timestamp,
-                    metadata: {
-                        productId: item.productId,
-                        prohibitedCategory: catalogItem.category,
-                    },
-                };
-            }
-            // Check live stock
-            if (item.quantity > catalogItem.stock) {
-                return {
-                    allowed: false,
-                    reasonCode: 'OUT_OF_STOCK',
-                    message: `Insufficient inventory for "${item.name}". Requested: ${item.quantity}, Available: ${catalogItem.stock}.`,
-                    evaluatedAt: timestamp,
-                    metadata: {
-                        productId: item.productId,
-                        stockAvailable: catalogItem.stock,
-                    },
-                };
+            if (catalogItem) {
+                // Check category whitelist
+                if (!this.config.allowedCategories.includes(catalogItem.category)) {
+                    return {
+                        allowed: false,
+                        reasonCode: 'CATEGORY_PROHIBITED',
+                        message: `Category "${catalogItem.category}" is not in the merchant's approved autonomous sales whitelist.`,
+                        evaluatedAt: timestamp,
+                        metadata: {
+                            productId: item.productId,
+                            prohibitedCategory: catalogItem.category,
+                        },
+                    };
+                }
+                // Check live stock
+                if (item.quantity > catalogItem.stock) {
+                    return {
+                        allowed: false,
+                        reasonCode: 'OUT_OF_STOCK',
+                        message: `Insufficient inventory for "${item.name}". Requested: ${item.quantity}, Available: ${catalogItem.stock}.`,
+                        evaluatedAt: timestamp,
+                        metadata: {
+                            productId: item.productId,
+                            stockAvailable: catalogItem.stock,
+                        },
+                    };
+                }
             }
         }
         // Rule 3: Hard Spend Cap per autonomous transaction
