@@ -77,8 +77,12 @@ let isVersion = false;
 for (let i = 0; i < rawArgs.length; i++) {
   const arg = rawArgs[i];
 
-  if (['connect', 'status', 'run', 'test', 'tools', 'catalog'].includes(arg)) {
-    command = arg;
+  if (['connect', 'status', 'run', 'test', 'tools', 'catalog', 'help'].includes(arg)) {
+    if (arg === 'help') {
+      isHelp = true;
+    } else {
+      command = arg;
+    }
   } else if ((arg === '--intent' || arg === '-i') && rawArgs[i + 1]) {
     intent = rawArgs[i + 1];
     i++;
@@ -356,26 +360,39 @@ function printBanner() {
 }
 
 function printHelp() {
-  console.log('\n\x1b[1m\x1b[34m⚡ RazorAgent CLI Reference (v' + VERSION + ')\x1b[0m\n');
-  console.log('Usage:');
-  console.log('  npx razoragent [command] [options]\n');
-  console.log('Merchant Setup Commands:');
-  console.log('  connect             Interactive onboarding wizard to connect your real Shopify / WooCommerce store');
-  console.log('  status              Display current active catalog provider (Demo vs Real) and gateway bounds\n');
-  console.log('AI Buyer Simulation Commands:');
-  console.log('  run                 Simulates an AI agent autonomously shopping your connected store within guardrails');
-  console.log('  test                Run the 5/5 automated fintech verification suite');
-  console.log('  tools               List all 6 registered Model Context Protocol (MCP) commerce tools');
-  console.log('  catalog             List live merchant inventory SKUs and prices\n');
-  console.log('Options:');
-  console.log('  -i, --intent <TEXT> Natural language buyer intent (e.g. "buy running shoes under 2000")');
-  console.log('  --spend-cap <INR>   Maximum allowable transaction spend limit in INR (Default: 5000)');
-  console.log('  --sku-limit <N>     Maximum allowed item quantity per SKU (Default: 3)');
-  console.log('  --key <KEY_ID>      Razorpay API Key ID (e.g. rzp_test_xxx)');
-  console.log('  --secret <SECRET>   Razorpay Key Secret');
-  console.log('  --json              Output raw JSON execution trace');
-  console.log('  -v, --version       Show package version');
-  console.log('  -h, --help          Show this help documentation\n');
+  console.log('\n\x1b[1m\x1b[34m⚡ RazorAgent CLI Reference & User Guide (v' + VERSION + ')\x1b[0m\n');
+  console.log('\x1b[1mUsage:\x1b[0m');
+  console.log('  \x1b[36mnpx razoragent [command] [options]\x1b[0m\n');
+
+  console.log('\x1b[1m🏬 1. Merchant Onboarding & Store Commands:\x1b[0m');
+  console.log('  \x1b[32mconnect\x1b[0m             Interactive wizard to connect your real Shopify or WooCommerce store');
+  console.log('                      \x1b[90mExample: npx razoragent connect\x1b[0m');
+  console.log('  \x1b[32mstatus\x1b[0m              Displays active catalog (🟢 LIVE vs 🟡 DEMO), SKU count, and guardrail limits');
+  console.log('                      \x1b[90mExample: npx razoragent status\x1b[0m');
+  console.log('  \x1b[32mcatalog\x1b[0m             Dumps all live products, prices, stock levels, and categories');
+  console.log('                      \x1b[90mExample: npx razoragent catalog\x1b[0m\n');
+
+  console.log('\x1b[1m🤖 2. Autonomous AI Buyer Simulation Commands:\x1b[0m');
+  console.log('  \x1b[32mrun\x1b[0m                 Executes an AI buyer agent intent against your active store inventory');
+  console.log('                      \x1b[90mExample: npx razoragent run --intent "buy running shoes under 2000"\x1b[0m');
+  console.log('                      \x1b[90mExample: npx razoragent run --intent "buy 2 units of The Complete Snowboard"\x1b[0m');
+  console.log('  \x1b[32mtest\x1b[0m                Runs the 6/6 automated fintech verification & benchmark suite');
+  console.log('                      \x1b[90mExample: npx razoragent test\x1b[0m');
+  console.log('  \x1b[32mtools\x1b[0m               Lists all 6 registered Model Context Protocol (MCP) commerce tools');
+  console.log('                      \x1b[90mExample: npx razoragent tools\x1b[0m\n');
+
+  console.log('\x1b[1m⚙️  Command Options & Guardrail Flags:\x1b[0m');
+  console.log('  \x1b[33m-i, --intent <TEXT>\x1b[0m Natural language buyer prompt (e.g. "find keyboard with coupon AGENT500")');
+  console.log('  \x1b[33m--spend-cap <INR>\x1b[0m   Maximum allowable transaction spend limit in INR (Default: ₹5,000)');
+  console.log('  \x1b[33m--sku-limit <N>\x1b[0m     Maximum allowed quantity per SKU line-item (Default: 3 units)');
+  console.log('  \x1b[33m--key <KEY_ID>\x1b[0m      Razorpay API Key ID (e.g. rzp_test_xxx)');
+  console.log('  \x1b[33m--secret <SECRET>\x1b[0m   Razorpay Key Secret');
+  console.log('  \x1b[33m--json\x1b[0m              Output raw JSON execution trace');
+  console.log('  \x1b[33m-v, --version\x1b[0m       Show current version');
+  console.log('  \x1b[33m-h, --help, help\x1b[0m    Show this help documentation\n');
+
+  console.log('\x1b[90mWeb Dashboard & Onboarding Portal: https://razoragent.resence.in\x1b[0m');
+  console.log('\x1b[90mDirect Store Connect: https://razoragent.resence.in/connect\x1b[0m\n');
 }
 
 function printTools() {
