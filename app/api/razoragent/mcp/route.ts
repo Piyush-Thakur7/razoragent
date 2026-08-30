@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
           protocolVersion: '2024-11-05',
           serverInfo: {
             name: 'razoragent-mcp-gateway',
-            version: '1.0.6',
+            version: '1.1.1',
             vendor: 'RazorAgent by Resence',
           },
         },

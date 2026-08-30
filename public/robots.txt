@@ -1,0 +1,26 @@
+# Allow all web crawlers, AI agents, and MCP clients
+User-agent: *
+Allow: /
+Allow: /api/razoragent/mcp
+Allow: /api/razoragent/*
+Allow: /connect
+Allow: /razoragent
+
+# Specific AI user agents
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: OpenAI
+Allow: /

@@ -641,6 +641,17 @@ import { CatalogProvider, CatalogSearchFilters } from './catalog-provider';
 export class DemoCatalogProvider implements CatalogProvider {
   public async searchProducts(query: string, filters: CatalogSearchFilters = {}): Promise<ProductItem[]> {
     const rawQ = (query || '').toLowerCase().trim();
+
+    // If query is empty or wildcard, return all matching products based on filters
+    if (!rawQ) {
+      return MERCHANT_CATALOG.filter((p) => {
+        const matchesCategory = !filters.category || p.category.toLowerCase() === filters.category.toLowerCase();
+        const matchesPrice = !filters.maxPrice || p.price <= filters.maxPrice;
+        const matchesRating = !filters.minRating || p.rating >= filters.minRating;
+        return matchesCategory && matchesPrice && matchesRating;
+      });
+    }
+
     const stopWords = new Set(['a', 'an', 'the', 'in', 'for', 'with', 'to', 'me', 'of', 'at', 'on', 'under', 'below', 'buy', 'order', 'get', 'find', 'please', 'want', 'some', 'any', 'good', 'best', 'need', 'i', 'would', 'like', 'show', 'less', 'than']);
 
     const tokens = rawQ
