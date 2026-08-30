@@ -5,9 +5,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "homepage": "https://razoragent.resence.in",
-  "bin": {
-    "razoragent": "./bin/cli.js"
-  },
+  "bin": "bin/cli.js",
   "files": [
     "dist",
     "bin",
