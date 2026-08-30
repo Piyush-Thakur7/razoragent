@@ -56,9 +56,42 @@ export class RazorpayAdapter {
 
         if (res.ok) {
           const liveOrder = await res.json();
+          let livePaymentUrl = `https://rzp.io/i/${liveOrder.id}`;
+
+          // Also create a real Razorpay Hosted Payment Link for immediate browser checkout
+          try {
+            const linkRes = await fetch('https://api.razorpay.com/v1/payment_links', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Basic ${authHeader}`,
+              },
+              body: JSON.stringify({
+                amount: amountInPaise,
+                currency: 'INR',
+                description: `RazorAgent Order ${liveOrder.id}`,
+                customer: {
+                  name: 'Autonomous AI Buyer',
+                  email: principalEmail,
+                },
+                notify: { sms: false, email: false },
+                notes: payload.notes,
+              }),
+            });
+            if (linkRes.ok) {
+              const linkData = await linkRes.json();
+              if (linkData.short_url) {
+                livePaymentUrl = linkData.short_url;
+              }
+            }
+          } catch (e) {
+            // fallback gracefully
+          }
+
           return {
             ...liveOrder,
-            payment_link: `https://rzp.io/l/${liveOrder.id}`,
+            payment_link: livePaymentUrl,
+            short_url: livePaymentUrl,
             upi_intent_uri: `upi://pay?pa=merchant.rzp@icici&pn=RazorAgent+Merchant&am=${cart.totalAmount}&tr=${liveOrder.id}&cu=INR`,
           };
         }

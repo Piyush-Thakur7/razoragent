@@ -2,7 +2,7 @@
 
 > **Bounded Model Context Protocol (MCP) Commerce & Settlement Gateway for Autonomous AI Buyers**  
 > **Engineered by:** Resence · Piyush Singh  
-> **Package Version:** `v1.1.3` (Zero-Dependency Node.js SDK & Standalone CLI)  
+> **Package Version:** `v1.1.4` (Zero-Dependency Node.js SDK & Standalone CLI)  
 > **Live Production Gateway:** [https://razoragent.resence.in](https://razoragent.resence.in)  
 > **NPM Package Registry:** [https://www.npmjs.com/package/razoragent](https://www.npmjs.com/package/razoragent)  
 > **MCP JSON-RPC Endpoint:** `https://razoragent.resence.in/api/razoragent/mcp`  
