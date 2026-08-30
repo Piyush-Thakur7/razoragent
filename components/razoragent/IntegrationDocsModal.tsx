@@ -10,7 +10,7 @@ interface IntegrationDocsModalProps {
 
 export default function IntegrationDocsModal({ isOpen, onClose }: IntegrationDocsModalProps) {
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
-  const [activeFramework, setActiveFramework] = useState<'nextjs' | 'express' | 'claude'>('nextjs');
+  const [activeFramework, setActiveFramework] = useState<'storefront' | 'nextjs' | 'express' | 'claude'>('storefront');
   const [downloadSuccess, setDownloadSuccess] = useState(false);
 
   if (!isOpen) return null;
@@ -20,6 +20,15 @@ export default function IntegrationDocsModal({ isOpen, onClose }: IntegrationDoc
     setCopiedSection(id);
     setTimeout(() => setCopiedSection(null), 2000);
   };
+
+  const STOREFRONT_CLI_SNIPPET = `# 1. Run the interactive merchant onboarding wizard
+npx razoragent connect
+
+# 2. Check active catalog provider & guardrail limits
+npx razoragent status
+
+# 3. Simulate an autonomous AI buyer purchasing from your live store
+npx razoragent run --intent "Buy running shoes under 2000"`;
 
   const NEXTJS_SNIPPET = `// app/api/razoragent/mcp/route.ts
 import { handleMCPRequest } from 'razoragent';
@@ -64,7 +73,7 @@ app.listen(3000, () => console.log('RazorAgent MCP Gateway live on port 3000'));
       "command": "npx",
       "args": [
         "-y",
-        "@razorpay/razoragent-mcp",
+        "razoragent",
         "--endpoint",
         "https://razoragent.resence.in/api/razoragent/mcp"
       ]
@@ -74,19 +83,31 @@ app.listen(3000, () => console.log('RazorAgent MCP Gateway live on port 3000'));
 
   const FULL_DOCS_MARKDOWN = `# ⚡ RazorAgent: Merchant Integration & Deployment Handbook
 
-This guide outlines how to integrate RazorAgent into any e-commerce merchant platform to enable autonomous AI shopping agents to discover products and transact via Razorpay with deterministic guardrails.
+This guide outlines how to connect your real store (Shopify, WooCommerce, or custom backend) to RazorAgent to enable autonomous AI shopping agents to discover products and transact via Razorpay with deterministic guardrails.
 
 ---
 
-## 📦 1. Installation
+## 🔌 1. Connect Your Real Store (Shopify / WooCommerce)
 
 \`\`\`bash
-npm install @razorpay/razoragent
+# Interactive CLI Onboarding Wizard
+npx razoragent connect
+
+# Check Active Gateway Status (Live vs Demo)
+npx razoragent status
 \`\`\`
 
 ---
 
-## 🛠️ 2. Next.js App Router Route Handler (\`app/api/razoragent/mcp/route.ts\`)
+## 📦 2. Installation via NPM
+
+\`\`\`bash
+npm install razoragent
+\`\`\`
+
+---
+
+## 🛠️ 3. Next.js App Router Route Handler (\`app/api/razoragent/mcp/route.ts\`)
 
 \`\`\`typescript
 ${NEXTJS_SNIPPET}
@@ -94,33 +115,27 @@ ${NEXTJS_SNIPPET}
 
 ---
 
-## 🛡️ 3. Environment Variables (\`.env.local\`)
+## 🛡️ 4. Environment Variables (\`.env.local\`)
 
 \`\`\`env
-# Live Razorpay Test Credentials (from dashboard.razorpay.com)
+# Razorpay Credentials (from dashboard.razorpay.com)
 RAZORPAY_KEY_ID=rzp_test_yourKeyIdHere
 RAZORPAY_KEY_SECRET=yourKeySecretHere
+
+# Shopify Storefront Credentials (Optional)
+SHOPIFY_STORE_DOMAIN=your-store.myshopify.com
+SHOPIFY_STOREFRONT_ACCESS_TOKEN=shpat_xxxxxxxxxxxxxxxxxxxx
 \`\`\`
 
 ---
 
-## 🤖 4. Connecting AI Clients (Claude Desktop / Gemini / OpenAI Operator)
-
-Add this to your \`claude_desktop_config.json\`:
-
-\`\`\`json
-${CLAUDE_CONFIG_SNIPPET}
-\`\`\`
-
----
-
-## 🧪 5. Automated Verification
+## 🧪 5. Automated Verification (6/6 Suites)
 
 \`\`\`bash
-npx tsx scripts/test-razoragent.ts
+npx razoragent test
 \`\`\`
 
-Generated via RazorAgent Mission Control © 2026 Piyush Singh.`;
+Generated via RazorAgent by Resence © 2026 Piyush Singh.`;
 
   const handleDownloadDocs = () => {
     const blob = new Blob([FULL_DOCS_MARKDOWN], { type: 'text/markdown;charset=utf-8;' });
@@ -163,6 +178,17 @@ Generated via RazorAgent Mission Control © 2026 Piyush Singh.`;
         <div className="px-6 py-3 bg-[#080B14] border-b border-slate-800/80 flex flex-wrap items-center justify-between gap-2">
           
           <div className="flex space-x-1">
+            <button
+              onClick={() => setActiveFramework('storefront')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition ${
+                activeFramework === 'storefront'
+                  ? 'bg-[#121E33] text-[#3395FF] border border-[#0C8CE9]/40 font-bold'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              Connect Store (CLI)
+            </button>
+
             <button
               onClick={() => setActiveFramework('nextjs')}
               className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition ${
@@ -220,23 +246,23 @@ Generated via RazorAgent Mission Control © 2026 Piyush Singh.`;
         {/* Body Content */}
         <div className="p-6 overflow-y-auto space-y-5 text-xs text-slate-300">
           
-          {/* Step 1: Package install */}
+          {/* Step 1: Package install or Connect */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="font-bold text-white text-xs flex items-center gap-1.5">
                 <span className="w-5 h-5 rounded-full bg-[#0C8CE9] text-white flex items-center justify-center text-[10px]">1</span>
-                Install Gateway Package
+                {activeFramework === 'storefront' ? 'Connect Real Shopify or WooCommerce Store' : 'Install Gateway Package'}
               </span>
               <button
-                onClick={() => copyCode('npm', 'npm install razoragent')}
+                onClick={() => copyCode('step1', activeFramework === 'storefront' ? 'npx razoragent connect' : 'npm install razoragent')}
                 className="text-slate-400 hover:text-white flex items-center gap-1 font-mono text-[11px]"
               >
-                {copiedSection === 'npm' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                {copiedSection === 'step1' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                 <span>Copy</span>
               </button>
             </div>
             <pre className="p-3 rounded-xl bg-[#04060A] border border-slate-800 font-mono text-slate-200">
-              npm install razoragent
+              {activeFramework === 'storefront' ? STOREFRONT_CLI_SNIPPET : 'npm install razoragent'}
             </pre>
           </div>
 
@@ -245,13 +271,14 @@ Generated via RazorAgent Mission Control © 2026 Piyush Singh.`;
             <div className="flex items-center justify-between">
               <span className="font-bold text-white text-xs flex items-center gap-1.5">
                 <span className="w-5 h-5 rounded-full bg-[#0C8CE9] text-white flex items-center justify-center text-[10px]">2</span>
+                {activeFramework === 'storefront' && 'Check Live Gateway Status'}
                 {activeFramework === 'nextjs' && 'Expose MCP Route Handler (Next.js)'}
                 {activeFramework === 'express' && 'Mount MCP Endpoint (Express.js)'}
                 {activeFramework === 'claude' && 'Configure Claude Desktop JSON'}
               </span>
               <button
                 onClick={() => {
-                  const code = activeFramework === 'nextjs' ? NEXTJS_SNIPPET : activeFramework === 'express' ? EXPRESS_SNIPPET : CLAUDE_CONFIG_SNIPPET;
+                  const code = activeFramework === 'storefront' ? 'npx razoragent status' : activeFramework === 'nextjs' ? NEXTJS_SNIPPET : activeFramework === 'express' ? EXPRESS_SNIPPET : CLAUDE_CONFIG_SNIPPET;
                   copyCode('activeCode', code);
                 }}
                 className="text-slate-400 hover:text-white flex items-center gap-1 font-mono text-[11px]"
@@ -261,6 +288,7 @@ Generated via RazorAgent Mission Control © 2026 Piyush Singh.`;
               </button>
             </div>
             <pre className="p-3 rounded-xl bg-[#04060A] border border-slate-800 font-mono text-[11px] text-slate-200 overflow-x-auto">
+              {activeFramework === 'storefront' && 'npx razoragent status'}
               {activeFramework === 'nextjs' && NEXTJS_SNIPPET}
               {activeFramework === 'express' && EXPRESS_SNIPPET}
               {activeFramework === 'claude' && CLAUDE_CONFIG_SNIPPET}
