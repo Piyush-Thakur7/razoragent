@@ -5,6 +5,14 @@ All notable changes to **RazorAgent by Resence** (`razoragent`) will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-08-30
+
+### Fixed
+* **Strict Error Handling in `npx razoragent connect` Wizard:**
+  - Added `CatalogConnectionError` across `ShopifyCatalogProvider` and `WooCommerceCatalogProvider`.
+  - Fixed false-positive "Connected, 0 products returned" on HTTP 401/403/404 errors when invalid credentials are provided.
+  - Wizard now halts with clear failure message and non-zero exit code, refusing to save invalid credentials to `.env.local`.
+
 ---
 
 ## [1.1.0] - 2026-08-30
