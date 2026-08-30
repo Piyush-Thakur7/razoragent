@@ -12,4 +12,15 @@ export declare const AVAILABLE_COUPONS: Record<string, {
     maxDiscountINR?: number;
     description?: string;
 }>;
+import { CatalogProvider, CatalogSearchFilters } from './catalog-provider';
+/**
+ * DemoCatalogProvider
+ * In-memory zero-configuration reference implementation for testing, demos, and local development.
+ */
+export declare class DemoCatalogProvider implements CatalogProvider {
+    searchProducts(query: string, filters?: CatalogSearchFilters): Promise<ProductItem[]>;
+    getProductDetails(productId: string): Promise<ProductItem | null>;
+    getProviderName(): string;
+}
+export declare const globalDemoCatalogProvider: DemoCatalogProvider;
 //# sourceMappingURL=catalog-data.d.ts.map

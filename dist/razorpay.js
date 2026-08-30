@@ -35,9 +35,11 @@ class RazorpayAdapter {
             },
         };
         // If live API keys are provided and not mock keys, attempt real network call
-        if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET && !process.env.RAZORPAY_KEY_ID.includes('AiBuilder')) {
+        const activeKey = process.env.RAZORPAY_KEY_ID || this.keyId;
+        const activeSecret = process.env.RAZORPAY_KEY_SECRET || this.keySecret;
+        if (activeKey && activeSecret && !activeKey.includes('AiBuilder')) {
             try {
-                const authHeader = Buffer.from(`${this.keyId}:${this.keySecret}`).toString('base64');
+                const authHeader = Buffer.from(`${activeKey}:${activeSecret}`).toString('base64');
                 const res = await fetch('https://api.razorpay.com/v1/orders', {
                     method: 'POST',
                     headers: {

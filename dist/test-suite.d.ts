@@ -14,6 +14,7 @@ export declare class RazorAgentTestSuite {
     private testQuantityLimitGuardrail;
     private test2AMConcurrentRaceCondition;
     private testHMACWebhookSignature;
+    private testPluggableCatalogProviders;
 }
 export declare const globalTestSuite: RazorAgentTestSuite;
 //# sourceMappingURL=test-suite.d.ts.map

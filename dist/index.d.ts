@@ -3,7 +3,10 @@
  * Bounded Model Context Protocol (MCP) Commerce & Settlement Gateway
  */
 export * from './types';
+export * from './catalog-provider';
 export * from './catalog-data';
+export * from './shopify-catalog-provider';
+export * from './woocommerce-catalog-provider';
 export * from './guardrails';
 export * from './idempotency';
 export * from './razorpay';

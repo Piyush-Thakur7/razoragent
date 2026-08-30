@@ -10,6 +10,8 @@ interface NavbarProps {
   onTabChange: (tab: DashboardTab) => void;
   onRunBenchmarks: () => void;
   onOpenDocs: () => void;
+  onOpenConnectStore?: () => void;
+  liveStoreName?: string | null;
   benchmarksLoading?: boolean;
 }
 
@@ -18,8 +20,12 @@ export default function Navbar({
   onTabChange,
   onRunBenchmarks,
   onOpenDocs,
+  onOpenConnectStore,
+  liveStoreName,
   benchmarksLoading,
 }: NavbarProps) {
+  const isLive = Boolean(liveStoreName && !liveStoreName.includes('Demo'));
+
   return (
     <header className="sticky top-0 z-40 w-full border-b border-slate-800 bg-[#090C15]/95 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -97,12 +103,27 @@ export default function Navbar({
 
         {/* Right Actions */}
         <div className="flex items-center space-x-2">
+          
+          {/* Connect Store Button with Honest Status Indicator */}
+          <button
+            onClick={onOpenConnectStore}
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition ${
+              isLive
+                ? 'bg-emerald-950/40 border-emerald-500/50 text-emerald-300 hover:bg-emerald-900/50'
+                : 'bg-amber-950/30 border-amber-500/40 text-amber-300 hover:bg-amber-900/40'
+            }`}
+          >
+            <span className={`w-2 h-2 rounded-full ${isLive ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`}></span>
+            <span className="font-bold">{isLive ? '🟢 Live Store' : '🟡 Demo Mode'}</span>
+            <span className="hidden lg:inline text-[10px] text-slate-400 pl-1 border-l border-slate-700">Connect</span>
+          </button>
+
           <button
             onClick={onOpenDocs}
             className="hidden sm:flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[#141C2E] hover:bg-[#1A263E] text-slate-300 border border-slate-700 transition"
           >
             <BookOpen className="w-3.5 h-3.5 text-[#3395FF]" />
-            <span>Integration Guide</span>
+            <span>Docs</span>
           </button>
 
           <button

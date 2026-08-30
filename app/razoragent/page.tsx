@@ -10,6 +10,7 @@ import MerchantAnalytics from '@/components/razoragent/MerchantAnalytics';
 import BenchmarkModal from '@/components/razoragent/BenchmarkModal';
 import RazorpayCheckoutModal from '@/components/razoragent/RazorpayCheckoutModal';
 import IntegrationDocsModal from '@/components/razoragent/IntegrationDocsModal';
+import ConnectStoreModal from '@/components/razoragent/ConnectStoreModal';
 import WebhookStream, { WebhookEventItem } from '@/components/razoragent/WebhookStream';
 import { GuardrailPolicyConfig, SimulationResult, TestResult } from '@/lib/razoragent/types';
 
@@ -24,6 +25,10 @@ export default function RazorAgentPage() {
 
   // Integration Docs Modal
   const [isDocsOpen, setIsDocsOpen] = useState(false);
+
+  // Merchant Connect Store Modal & Status
+  const [isConnectOpen, setIsConnectOpen] = useState(false);
+  const [liveStoreName, setLiveStoreName] = useState<string | null>(null);
 
   // Live Webhook Events
   const [webhookEvents, setWebhookEvents] = useState<WebhookEventItem[]>([
@@ -159,6 +164,8 @@ export default function RazorAgentPage() {
         onTabChange={setActiveTab}
         onRunBenchmarks={handleRunBenchmarks}
         onOpenDocs={() => setIsDocsOpen(true)}
+        onOpenConnectStore={() => setIsConnectOpen(true)}
+        liveStoreName={liveStoreName}
         benchmarksLoading={benchmarkLoading}
       />
 
@@ -174,6 +181,8 @@ export default function RazorAgentPage() {
                 onRunSimulation={handleRunSimulation}
                 isLoading={isLoading}
                 simulationResult={simulationResult}
+                liveStoreName={liveStoreName}
+                onOpenConnectStore={() => setIsConnectOpen(true)}
               />
             </div>
 
@@ -213,6 +222,15 @@ export default function RazorAgentPage() {
         )}
 
       </main>
+
+      {/* Connect Store Modal */}
+      <ConnectStoreModal
+        isOpen={isConnectOpen}
+        onClose={() => setIsConnectOpen(false)}
+        onStoreConnected={(name, isLive) => {
+          setLiveStoreName(isLive ? name : null);
+        }}
+      />
 
       {/* Razorpay Standard Checkout Modal */}
       <RazorpayCheckoutModal

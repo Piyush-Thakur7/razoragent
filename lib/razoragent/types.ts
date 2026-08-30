@@ -45,6 +45,7 @@ export interface CartQuote {
   shipping: number;
   totalAmount: number; // Final payable in INR
   currency: 'INR';
+  expiresAt?: string;
 }
 
 export interface BuyerInfo {
@@ -77,7 +78,8 @@ export interface PolicyDecision {
     | 'QUANTITY_LIMIT_EXCEEDED'
     | 'OUT_OF_STOCK'
     | 'HUMAN_APPROVAL_REQUIRED'
-    | 'IDEMPOTENCY_RETRY_SUPPRESSED';
+    | 'IDEMPOTENCY_RETRY_SUPPRESSED'
+    | 'CART_EXPIRED';
   message: string;
   evaluatedAt: string;
   metadata?: Record<string, unknown>;
@@ -182,7 +184,7 @@ export interface SimulationResult {
 export interface TestResult {
   testId: string;
   name: string;
-  category: 'GUARDRAILS' | 'IDEMPOTENCY_2AM' | 'RAZORPAY_API' | 'AGENTIC_COMMERCE';
+  category: 'GUARDRAILS' | 'IDEMPOTENCY_2AM' | 'RAZORPAY_API' | 'AGENTIC_COMMERCE' | 'CATALOG_ARCHITECTURE';
   status: 'PASSED' | 'FAILED';
   durationMs: number;
   expected: string;

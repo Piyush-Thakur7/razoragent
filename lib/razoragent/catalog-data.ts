@@ -631,3 +631,145 @@ export const AVAILABLE_COUPONS: Record<string, { discountPercent?: number; flatD
   EARBUD20: { discountPercent: 20, maxDiscountINR: 800, minSpendINR: 2000, description: '20% Off on true wireless earbuds' },
   SAAS15: { discountPercent: 15, minSpendINR: 5000, description: '15% Off on annual software licenses' },
 };
+
+import { CatalogProvider, CatalogSearchFilters } from './catalog-provider';
+
+/**
+ * DemoCatalogProvider
+ * In-memory zero-configuration reference implementation for testing, demos, and local development.
+ */
+export class DemoCatalogProvider implements CatalogProvider {
+  public async searchProducts(query: string, filters: CatalogSearchFilters = {}): Promise<ProductItem[]> {
+    const rawQ = (query || '').toLowerCase().trim();
+    const stopWords = new Set(['a', 'an', 'the', 'in', 'for', 'with', 'to', 'me', 'of', 'at', 'on', 'under', 'below', 'buy', 'order', 'get', 'find', 'please', 'want', 'some', 'any', 'good', 'best', 'need', 'i', 'would', 'like', 'show', 'less', 'than']);
+
+    const tokens = rawQ
+      .replace(/[^a-z0-9\s-]/g, ' ')
+      .split(/\s+/)
+      .map((t) => t.trim())
+      .filter((t) => t.length > 0 && !stopWords.has(t) && !/^\d+$/.test(t));
+
+    let targetEntity: string | null = null;
+    const isMouseQuery = tokens.includes('mouse') && !tokens.includes('mat') && !tokens.includes('pad');
+    const isLaptopQuery = tokens.includes('laptop') && !tokens.includes('stand') && !tokens.includes('bag') && !tokens.includes('riser');
+    const isSpeakerQuery = tokens.includes('speaker') || tokens.includes('speakers');
+    const isTshirtQuery = tokens.includes('tshirt') || tokens.includes('shirt') || rawQ.includes('t-shirt');
+    const isShoesQuery = tokens.includes('shoes') || tokens.includes('shoe') || tokens.includes('sneakers');
+    const isWalletQuery = tokens.includes('wallet');
+    const isBackpackQuery = (tokens.includes('backpack') || tokens.includes('bag')) && !isLaptopQuery;
+    const isCoffeeQuery = (tokens.includes('coffee') || tokens.includes('roast') || tokens.includes('beans')) && !tokens.includes('grinder') && !tokens.includes('kettle');
+    const isHeadphonesQuery = tokens.includes('headphones') || tokens.includes('headphone');
+    const isEarbudsQuery = tokens.includes('earbuds') || tokens.includes('earbud');
+    const isKeyboardQuery = tokens.includes('keyboard');
+    const isWatchQuery = tokens.includes('watch');
+    const isProteinQuery = tokens.includes('protein') || tokens.includes('whey');
+
+    if (isMouseQuery) targetEntity = 'mouse';
+    else if (isLaptopQuery) targetEntity = 'laptop';
+    else if (isSpeakerQuery) targetEntity = 'speaker';
+    else if (isTshirtQuery) targetEntity = 'tshirt';
+    else if (isShoesQuery) targetEntity = 'shoes';
+    else if (isWalletQuery) targetEntity = 'wallet';
+    else if (isBackpackQuery) targetEntity = 'backpack';
+    else if (isCoffeeQuery) targetEntity = 'coffee';
+    else if (isHeadphonesQuery) targetEntity = 'headphones';
+    else if (isEarbudsQuery) targetEntity = 'earbuds';
+    else if (isKeyboardQuery) targetEntity = 'keyboard';
+    else if (isWatchQuery) targetEntity = 'watch';
+    else if (isProteinQuery) targetEntity = 'protein';
+
+    const scored = MERCHANT_CATALOG.map((p) => {
+      let score = 0;
+      const pNameLower = p.name.toLowerCase();
+      const pDescLower = p.description.toLowerCase();
+      const pCatLower = p.category.toLowerCase();
+      const pTagsLower = p.tags.map((t) => t.toLowerCase());
+
+      if (targetEntity) {
+        let isEntityMatch = false;
+        if (targetEntity === 'mouse') {
+          isEntityMatch = pTagsLower.includes('mouse') && !pTagsLower.includes('desk mat') && !pTagsLower.includes('mat');
+        } else if (targetEntity === 'laptop') {
+          isEntityMatch = pTagsLower.includes('laptop') && !pTagsLower.includes('laptop stand') && !pTagsLower.includes('stand') && !pTagsLower.includes('bag');
+        } else if (targetEntity === 'speaker') {
+          isEntityMatch = pTagsLower.includes('speaker');
+        } else if (targetEntity === 'tshirt') {
+          isEntityMatch = pTagsLower.includes('tshirt') || pTagsLower.includes('t-shirt') || pTagsLower.includes('shirt');
+        } else if (targetEntity === 'shoes') {
+          isEntityMatch = pTagsLower.includes('shoes') || pTagsLower.includes('footwear') || pTagsLower.includes('sneakers');
+        } else if (targetEntity === 'wallet') {
+          isEntityMatch = pTagsLower.includes('wallet');
+        } else if (targetEntity === 'backpack') {
+          isEntityMatch = pTagsLower.includes('backpack') || pTagsLower.includes('bag');
+        } else if (targetEntity === 'coffee') {
+          isEntityMatch = pTagsLower.includes('coffee') || pTagsLower.includes('roast') || pTagsLower.includes('beans');
+        } else if (targetEntity === 'headphones') {
+          isEntityMatch = pTagsLower.includes('headphones') || pTagsLower.includes('headphone');
+        } else if (targetEntity === 'earbuds') {
+          isEntityMatch = pTagsLower.includes('earbuds') || pTagsLower.includes('earbud');
+        } else if (targetEntity === 'keyboard') {
+          isEntityMatch = pTagsLower.includes('keyboard');
+        } else if (targetEntity === 'watch') {
+          isEntityMatch = pTagsLower.includes('watch') || pTagsLower.includes('smartwatch');
+        } else if (targetEntity === 'protein') {
+          isEntityMatch = pTagsLower.includes('protein') || pTagsLower.includes('whey');
+        }
+
+        if (!isEntityMatch) {
+          return { product: p, score: 0, matches: false };
+        }
+      }
+
+      if (tokens.length === 0) {
+        score = 10;
+      } else {
+        if (rawQ && (pNameLower.includes(rawQ) || pTagsLower.some((t) => t.includes(rawQ)))) {
+          score += 120;
+        }
+
+        for (const token of tokens) {
+          const singular = token.endsWith('s') && token.length > 3 ? token.slice(0, -1) : token;
+          const plural = token + 's';
+
+          if (pTagsLower.includes(token) || pTagsLower.includes(singular) || pTagsLower.includes(plural)) {
+            score += 100;
+          } else if (pNameLower.split(/[\s-]+/).includes(token) || pNameLower.split(/[\s-]+/).includes(singular)) {
+            score += 80;
+          } else if (pCatLower.includes(token) || pCatLower.includes(singular)) {
+            score += 60;
+          } else if (pNameLower.includes(token) || pNameLower.includes(singular)) {
+            score += 40;
+          } else if (pTagsLower.some((t) => t.includes(token) || token.includes(t))) {
+            score += 25;
+          } else if (pDescLower.includes(token) || pDescLower.includes(singular)) {
+            score += 15;
+          }
+        }
+      }
+
+      const matchesCategory = !filters.category || p.category.toLowerCase() === filters.category.toLowerCase();
+      const matchesPrice = !filters.maxPrice || p.price <= filters.maxPrice;
+      const matchesRating = !filters.minRating || p.rating >= filters.minRating;
+
+      const isConfident = score >= 40;
+
+      return { product: p, score, matches: isConfident && matchesCategory && matchesPrice && matchesRating };
+    });
+
+    return scored
+      .filter((s) => s.matches)
+      .sort((a, b) => b.score - a.score)
+      .map((s) => s.product);
+  }
+
+  public async getProductDetails(productId: string): Promise<ProductItem | null> {
+    const item = MERCHANT_CATALOG.find((p) => p.id === productId);
+    return item || null;
+  }
+
+  public getProviderName(): string {
+    return 'Demo In-Memory Catalog (Sample Data)';
+  }
+}
+
+export const globalDemoCatalogProvider = new DemoCatalogProvider();

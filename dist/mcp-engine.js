@@ -2,10 +2,14 @@
 /**
  * RazorAgent MCP (Model Context Protocol) Server Engine
  * Exposes standardized, callable commerce tools for autonomous AI agents.
+ *
+ * Powered by a pluggable Merchant-Agnostic Catalog Architecture (Shopify, WooCommerce, Demo).
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.globalMCPEngine = exports.MCPEngine = exports.MCP_TOOLS = void 0;
+exports.handleMCPRequest = exports.globalMCPEngine = exports.MCPEngine = exports.MCP_TOOLS = void 0;
 const catalog_data_1 = require("./catalog-data");
+const shopify_catalog_provider_1 = require("./shopify-catalog-provider");
+const woocommerce_catalog_provider_1 = require("./woocommerce-catalog-provider");
 const guardrails_1 = require("./guardrails");
 const idempotency_1 = require("./idempotency");
 const razorpay_1 = require("./razorpay");
@@ -57,30 +61,30 @@ exports.MCP_TOOLS = [
                         required: ['product_id', 'quantity'],
                     },
                 },
-                coupon_code: { type: 'string', description: 'Optional coupon code (e.g. "AGENT500", "BUILD2026")' },
+                coupon_code: { type: 'string', description: 'Optional promo or discount code' },
             },
             required: ['items'],
         },
     },
     {
         name: 'evaluate_spend_policy',
-        description: 'Runs deterministic merchant safety guardrails on the cart to verify compliance before creating financial orders.',
+        description: 'Runs deterministic merchant safety guardrails on the cart to verify compliance with spend limits, SKU caps, and whitelist rules.',
         parameters: {
             type: 'object',
             properties: {
-                cart_id: { type: 'string', description: 'The cart ID to evaluate against policies' },
+                cart_id: { type: 'string', description: 'The unique cart ID from calculate_cart_quote' },
             },
             required: ['cart_id'],
         },
     },
     {
         name: 'create_guarded_order',
-        description: 'Creates a Razorpay Order protected by cryptographic SHA-256 idempotency locks and policy guardrails. Returns payment link and UPI intent.',
+        description: 'Creates a Razorpay Order protected by cryptographic SHA-256 idempotency locks and pre-settlement spend guardrails.',
         parameters: {
             type: 'object',
             properties: {
-                cart_id: { type: 'string', description: 'The validated Cart ID' },
-                idempotency_key: { type: 'string', description: 'Unique agent nonce or session ID to prevent duplicate billing' },
+                cart_id: { type: 'string', description: 'The approved cart quote ID' },
+                idempotency_key: { type: 'string', description: 'Unique agent session transaction token' },
                 buyer_email: { type: 'string', description: 'Principal buyer email address' },
             },
             required: ['cart_id', 'idempotency_key'],
@@ -88,19 +92,39 @@ exports.MCP_TOOLS = [
     },
     {
         name: 'verify_payment_and_settle',
-        description: 'Verifies the cryptographic HMAC SHA-256 signature from Razorpay checkout to confirm order settlement.',
+        description: 'Verifies the cryptographic HMAC SHA-256 signature from Razorpay checkout and transitions order to SETTLED.',
         parameters: {
             type: 'object',
             properties: {
-                order_id: { type: 'string', description: 'The Razorpay Order ID (e.g. "order_xxx")' },
-                payment_id: { type: 'string', description: 'The Razorpay Payment ID (e.g. "pay_xxx")' },
-                signature: { type: 'string', description: 'HMAC SHA-256 signature string' },
+                order_id: { type: 'string', description: 'Razorpay Order ID (e.g. order_xxx)' },
+                payment_id: { type: 'string', description: 'Razorpay Payment ID (e.g. pay_xxx)' },
+                signature: { type: 'string', description: 'Cryptographic HMAC signature from Razorpay checkout' },
             },
             required: ['order_id', 'payment_id', 'signature'],
         },
     },
 ];
 class MCPEngine {
+    constructor(customProvider) {
+        if (customProvider) {
+            this.catalogProvider = customProvider;
+        }
+        else if (process.env.SHOPIFY_STORE_DOMAIN && process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN) {
+            this.catalogProvider = new shopify_catalog_provider_1.ShopifyCatalogProvider();
+        }
+        else if (process.env.WOOCOMMERCE_SITE_URL && process.env.WOOCOMMERCE_CONSUMER_KEY) {
+            this.catalogProvider = new woocommerce_catalog_provider_1.WooCommerceCatalogProvider();
+        }
+        else {
+            this.catalogProvider = catalog_data_1.globalDemoCatalogProvider;
+        }
+    }
+    setCatalogProvider(provider) {
+        this.catalogProvider = provider;
+    }
+    getCatalogProvider() {
+        return this.catalogProvider;
+    }
     listTools() {
         return exports.MCP_TOOLS;
     }
@@ -122,160 +146,13 @@ class MCPEngine {
                 throw new Error(`Unknown MCP Tool: ${toolName}`);
         }
     }
-    searchProducts(query, category, maxPrice, minRating) {
-        const rawQ = (query || '').toLowerCase().trim();
-        const stopWords = new Set(['a', 'an', 'the', 'in', 'for', 'with', 'to', 'me', 'of', 'at', 'on', 'under', 'below', 'buy', 'order', 'get', 'find', 'please', 'want', 'some', 'any', 'good', 'best', 'need', 'i', 'would', 'like', 'show', 'less', 'than']);
-        // Extract search tokens (ignore standalone numbers/prices)
-        const tokens = rawQ
-            .replace(/[^a-z0-9\s-]/g, ' ')
-            .split(/\s+/)
-            .map((t) => t.trim())
-            .filter((t) => t.length > 0 && !stopWords.has(t) && !/^\d+$/.test(t));
-        // Entity intent disambiguation: detect target entity to prevent cross-category false positives
-        let targetEntity = null;
-        const isMouseQuery = tokens.includes('mouse') && !tokens.includes('mat') && !tokens.includes('pad');
-        const isLaptopQuery = tokens.includes('laptop') && !tokens.includes('stand') && !tokens.includes('bag') && !tokens.includes('riser');
-        const isSpeakerQuery = tokens.includes('speaker') || tokens.includes('speakers');
-        const isTshirtQuery = tokens.includes('tshirt') || tokens.includes('shirt') || rawQ.includes('t-shirt');
-        const isShoesQuery = tokens.includes('shoes') || tokens.includes('shoe') || tokens.includes('sneakers');
-        const isWalletQuery = tokens.includes('wallet');
-        const isBackpackQuery = (tokens.includes('backpack') || tokens.includes('bag')) && !isLaptopQuery;
-        const isCoffeeQuery = (tokens.includes('coffee') || tokens.includes('roast') || tokens.includes('beans')) && !tokens.includes('grinder') && !tokens.includes('kettle');
-        const isHeadphonesQuery = tokens.includes('headphones') || tokens.includes('headphone');
-        const isEarbudsQuery = tokens.includes('earbuds') || tokens.includes('earbud');
-        const isKeyboardQuery = tokens.includes('keyboard');
-        const isWatchQuery = tokens.includes('watch');
-        const isProteinQuery = tokens.includes('protein') || tokens.includes('whey');
-        if (isMouseQuery)
-            targetEntity = 'mouse';
-        else if (isLaptopQuery)
-            targetEntity = 'laptop';
-        else if (isSpeakerQuery)
-            targetEntity = 'speaker';
-        else if (isTshirtQuery)
-            targetEntity = 'tshirt';
-        else if (isShoesQuery)
-            targetEntity = 'shoes';
-        else if (isWalletQuery)
-            targetEntity = 'wallet';
-        else if (isBackpackQuery)
-            targetEntity = 'backpack';
-        else if (isCoffeeQuery)
-            targetEntity = 'coffee';
-        else if (isHeadphonesQuery)
-            targetEntity = 'headphones';
-        else if (isEarbudsQuery)
-            targetEntity = 'earbuds';
-        else if (isKeyboardQuery)
-            targetEntity = 'keyboard';
-        else if (isWatchQuery)
-            targetEntity = 'watch';
-        else if (isProteinQuery)
-            targetEntity = 'protein';
-        const scored = catalog_data_1.MERCHANT_CATALOG.map((p) => {
-            let score = 0;
-            const pNameLower = p.name.toLowerCase();
-            const pDescLower = p.description.toLowerCase();
-            const pCatLower = p.category.toLowerCase();
-            const pTagsLower = p.tags.map((t) => t.toLowerCase());
-            // If a specific target entity is recognized, enforce strict entity matching
-            if (targetEntity) {
-                let isEntityMatch = false;
-                if (targetEntity === 'mouse') {
-                    isEntityMatch = pTagsLower.includes('mouse') && !pTagsLower.includes('desk mat') && !pTagsLower.includes('mat');
-                }
-                else if (targetEntity === 'laptop') {
-                    isEntityMatch = pTagsLower.includes('laptop') && !pTagsLower.includes('laptop stand') && !pTagsLower.includes('stand') && !pTagsLower.includes('bag');
-                }
-                else if (targetEntity === 'speaker') {
-                    isEntityMatch = pTagsLower.includes('speaker');
-                }
-                else if (targetEntity === 'tshirt') {
-                    isEntityMatch = pTagsLower.includes('tshirt') || pTagsLower.includes('t-shirt') || pTagsLower.includes('shirt');
-                }
-                else if (targetEntity === 'shoes') {
-                    isEntityMatch = pTagsLower.includes('shoes') || pTagsLower.includes('footwear') || pTagsLower.includes('sneakers');
-                }
-                else if (targetEntity === 'wallet') {
-                    isEntityMatch = pTagsLower.includes('wallet');
-                }
-                else if (targetEntity === 'backpack') {
-                    isEntityMatch = pTagsLower.includes('backpack') || pTagsLower.includes('bag');
-                }
-                else if (targetEntity === 'coffee') {
-                    isEntityMatch = pTagsLower.includes('coffee') || pTagsLower.includes('roast') || pTagsLower.includes('beans');
-                }
-                else if (targetEntity === 'headphones') {
-                    isEntityMatch = pTagsLower.includes('headphones') || pTagsLower.includes('headphone');
-                }
-                else if (targetEntity === 'earbuds') {
-                    isEntityMatch = pTagsLower.includes('earbuds') || pTagsLower.includes('earbud');
-                }
-                else if (targetEntity === 'keyboard') {
-                    isEntityMatch = pTagsLower.includes('keyboard');
-                }
-                else if (targetEntity === 'watch') {
-                    isEntityMatch = pTagsLower.includes('watch') || pTagsLower.includes('smartwatch');
-                }
-                else if (targetEntity === 'protein') {
-                    isEntityMatch = pTagsLower.includes('protein') || pTagsLower.includes('whey');
-                }
-                if (!isEntityMatch) {
-                    return { product: p, score: 0, matches: false };
-                }
-            }
-            if (tokens.length === 0) {
-                score = 10;
-            }
-            else {
-                // Full phrase match
-                if (rawQ && (pNameLower.includes(rawQ) || pTagsLower.some((t) => t.includes(rawQ)))) {
-                    score += 120;
-                }
-                for (const token of tokens) {
-                    const singular = token.endsWith('s') && token.length > 3 ? token.slice(0, -1) : token;
-                    const plural = token + 's';
-                    // 1. Exact Tag Match
-                    if (pTagsLower.includes(token) || pTagsLower.includes(singular) || pTagsLower.includes(plural)) {
-                        score += 100;
-                    }
-                    // 2. Exact word match in product name
-                    else if (pNameLower.split(/[\s-]+/).includes(token) || pNameLower.split(/[\s-]+/).includes(singular)) {
-                        score += 80;
-                    }
-                    // 3. Category match
-                    else if (pCatLower.includes(token) || pCatLower.includes(singular)) {
-                        score += 60;
-                    }
-                    // 4. Substring in name
-                    else if (pNameLower.includes(token) || pNameLower.includes(singular)) {
-                        score += 40;
-                    }
-                    // 5. Partial tag match
-                    else if (pTagsLower.some((t) => t.includes(token) || token.includes(t))) {
-                        score += 25;
-                    }
-                    // 6. Substring in description
-                    else if (pDescLower.includes(token) || pDescLower.includes(singular)) {
-                        score += 15;
-                    }
-                }
-            }
-            const matchesCategory = !category || p.category.toLowerCase() === category.toLowerCase();
-            const matchesPrice = !maxPrice || p.price <= maxPrice;
-            const matchesRating = !minRating || p.rating >= minRating;
-            // Require minimum score threshold (>= 40) to prevent random loose description matches
-            const isConfident = score >= 40;
-            return { product: p, score, matches: isConfident && matchesCategory && matchesPrice && matchesRating };
-        });
-        const results = scored
-            .filter((s) => s.matches)
-            .sort((a, b) => b.score - a.score)
-            .map((s) => s.product);
+    async searchProducts(query, category, maxPrice, minRating) {
+        const products = await this.catalogProvider.searchProducts(query, { category, maxPrice, minRating });
         return {
             query,
-            count: results.length,
-            products: results.map((p) => ({
+            count: products.length,
+            provider: this.catalogProvider.getProviderName(),
+            products: products.map((p) => ({
                 id: p.id,
                 name: p.name,
                 category: p.category,
@@ -286,8 +163,8 @@ class MCPEngine {
             })),
         };
     }
-    getProductDetails(productId) {
-        const item = catalog_data_1.MERCHANT_CATALOG.find((p) => p.id === productId);
+    async getProductDetails(productId) {
+        const item = await this.catalogProvider.getProductDetails(productId);
         if (!item) {
             return { error: 'PRODUCT_NOT_FOUND', message: `No product found matching ID: ${productId}` };
         }
@@ -295,13 +172,14 @@ class MCPEngine {
             ...item,
             price_inr: item.price,
             currency: 'INR',
+            provider: this.catalogProvider.getProviderName(),
         };
     }
-    calculateCartQuote(items, couponCode) {
+    async calculateCartQuote(items, couponCode) {
         const cartItems = [];
         let subtotal = 0;
         for (const reqItem of items) {
-            const product = catalog_data_1.MERCHANT_CATALOG.find((p) => p.id === reqItem.product_id);
+            const product = await this.catalogProvider.getProductDetails(reqItem.product_id);
             if (!product)
                 continue;
             const qty = Math.max(1, reqItem.quantity || 1);
@@ -345,7 +223,9 @@ class MCPEngine {
             shipping,
             totalAmount,
             currency: 'INR',
+            expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
         };
+        // Cache cart quote for deterministic policy evaluation & order generation
         CART_STORE.set(cartId, quote);
         return quote;
     }
@@ -354,103 +234,63 @@ class MCPEngine {
         if (!cart) {
             return {
                 allowed: false,
-                reasonCode: 'QUANTITY_LIMIT_EXCEEDED',
-                message: `Cart session "${cartId}" not found or expired.`,
+                reasonCode: 'CART_EXPIRED',
+                message: `Cart quote "${cartId}" is invalid or has expired. Request a new quote before proceeding.`,
                 evaluatedAt: new Date().toISOString(),
             };
         }
         return guardrails_1.globalGuardrailEngine.evaluate(cart);
     }
-    async createGuardedOrder(cartId, idempotencyKey, buyerEmail = 'buyer@agentic.ai') {
+    async createGuardedOrder(cartId, idempotencyKey, buyerEmail = 'buyer.agent@resence.in') {
         const cart = CART_STORE.get(cartId);
         if (!cart) {
-            return {
-                success: false,
-                decision: {
-                    allowed: false,
-                    reasonCode: 'QUANTITY_LIMIT_EXCEEDED',
-                    message: `Cart session "${cartId}" not found or expired.`,
-                    evaluatedAt: new Date().toISOString(),
-                },
+            const decision = {
+                allowed: false,
+                reasonCode: 'CART_EXPIRED',
+                message: `Cart quote "${cartId}" has expired.`,
+                evaluatedAt: new Date().toISOString(),
             };
+            return { success: false, decision, isCached: false };
         }
-        // Step 1: Deterministic Policy Evaluation
-        const decision = guardrails_1.globalGuardrailEngine.evaluate(cart);
-        if (!decision.allowed) {
-            return {
-                success: false,
-                decision,
-            };
+        // Step 1: Pre-settlement deterministic guardrails
+        const policyDecision = guardrails_1.globalGuardrailEngine.evaluate(cart);
+        if (!policyDecision.allowed) {
+            return { success: false, decision: policyDecision, isCached: false };
         }
-        // Step 2: Check for in-flight pending creation on exact same key
-        if (PENDING_ORDER_PROMISES.has(idempotencyKey)) {
-            const existingPromise = PENDING_ORDER_PROMISES.get(idempotencyKey);
-            const cachedResult = await existingPromise;
-            return {
-                ...cachedResult,
-                decision: {
-                    allowed: true,
-                    reasonCode: 'IDEMPOTENCY_RETRY_SUPPRESSED',
-                    message: `Concurrent invocation intercepted. Served active Razorpay order (${cachedResult.order?.id}) with zero duplicate billing.`,
-                    evaluatedAt: new Date().toISOString(),
-                },
-                isCached: true,
-            };
+        // Step 2: Canonical fingerprint hash for same-tick async race-condition defense
+        const fingerprint = idempotency_1.globalIdempotencyManager.generateFingerprint('agent_buyer_01', cart);
+        const concurrencyKey = `lock_${fingerprint}`;
+        if (PENDING_ORDER_PROMISES.has(concurrencyKey)) {
+            const existingPromise = PENDING_ORDER_PROMISES.get(concurrencyKey);
+            const cachedOrder = await existingPromise;
+            return { success: true, decision: policyDecision, order: cachedOrder, isCached: true };
         }
-        // Step 3: Cryptographic Idempotency Lock Check
-        const agentId = 'agent_buyer_01';
-        const fingerprint = idempotency_1.globalIdempotencyManager.generateFingerprint(agentId, cart);
-        const lockResult = idempotency_1.globalIdempotencyManager.acquireLock(idempotencyKey, agentId, fingerprint);
-        if (!lockResult.acquired && lockResult.isDuplicate) {
-            // 2 AM Race Condition Intercepted! Return cached response without double-billing
-            const cachedOrder = lockResult.record.responseCache;
+        // Step 3: Check memory-cached idempotency lock
+        const lockResult = idempotency_1.globalIdempotencyManager.acquireLock(idempotencyKey, 'agent_buyer_01', fingerprint);
+        if (!lockResult.acquired && lockResult.record.status === 'ORDER_CREATED' && lockResult.record.responseCache) {
             return {
                 success: true,
-                decision: {
-                    allowed: true,
-                    reasonCode: 'IDEMPOTENCY_RETRY_SUPPRESSED',
-                    message: `Duplicate invocation intercepted. Serving verified active Razorpay order (${lockResult.record.orderId}) without duplicate debit.`,
-                    evaluatedAt: new Date().toISOString(),
-                    metadata: {
-                        idempotencyKey,
-                        orderId: lockResult.record.orderId,
-                        hash: lockResult.record.hash,
-                    },
-                },
-                order: cachedOrder,
+                decision: policyDecision,
+                order: lockResult.record.responseCache,
                 isCached: true,
             };
         }
-        // Wrap execution in pending promise map for same-tick async race conditions
-        const orderPromise = (async () => {
-            try {
-                const order = await razorpay_1.globalRazorpayAdapter.createOrder(cart, agentId, buyerEmail);
-                idempotency_1.globalIdempotencyManager.completeOrder(idempotencyKey, order.id, order);
-                return {
-                    success: true,
-                    decision,
-                    order,
-                    isCached: false,
-                };
-            }
-            catch (err) {
-                idempotency_1.globalIdempotencyManager.releaseLock(idempotencyKey);
-                return {
-                    success: false,
-                    decision: {
-                        allowed: false,
-                        reasonCode: 'POLICY_PASSED',
-                        message: `Razorpay Order creation error: ${err?.message || 'Gateway connection timeout'}`,
-                        evaluatedAt: new Date().toISOString(),
-                    },
-                };
-            }
-            finally {
-                PENDING_ORDER_PROMISES.delete(idempotencyKey);
-            }
+        // Step 4: Execute Razorpay order creation wrapped in promise latch
+        const orderExecutionPromise = (async () => {
+            const order = await razorpay_1.globalRazorpayAdapter.createOrder(cart, 'agent_buyer_01', buyerEmail);
+            idempotency_1.globalIdempotencyManager.completeOrder(idempotencyKey, order.id, order);
+            return order;
         })();
-        PENDING_ORDER_PROMISES.set(idempotencyKey, orderPromise);
-        return await orderPromise;
+        PENDING_ORDER_PROMISES.set(concurrencyKey, orderExecutionPromise);
+        try {
+            const liveOrder = await orderExecutionPromise;
+            return { success: true, decision: policyDecision, order: liveOrder, isCached: false };
+        }
+        finally {
+            setTimeout(() => {
+                PENDING_ORDER_PROMISES.delete(concurrencyKey);
+            }, 5000);
+        }
     }
     verifyPaymentAndSettle(orderId, paymentId, signature) {
         const isValid = razorpay_1.globalRazorpayAdapter.verifySignature(orderId, paymentId, signature);
@@ -458,12 +298,12 @@ class MCPEngine {
             verified: isValid,
             orderId,
             paymentId,
-            status: isValid ? 'CAPTURED_AND_SETTLED' : 'SIGNATURE_VERIFICATION_FAILED',
-            protocol: 'RAZORAGENT_SETTLEMENT_v1.0',
-            timestamp: new Date().toISOString(),
+            settledAt: new Date().toISOString(),
         };
     }
 }
 exports.MCPEngine = MCPEngine;
 exports.globalMCPEngine = new MCPEngine();
+const handleMCPRequest = (body) => exports.globalMCPEngine.executeTool(body.method, body.params);
+exports.handleMCPRequest = handleMCPRequest;
 //# sourceMappingURL=mcp-engine.js.map

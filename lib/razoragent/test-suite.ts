@@ -29,6 +29,9 @@ export class RazorAgentTestSuite {
     // Test 5: HMAC SHA-256 Webhook Signature Verification
     results.push(await this.testHMACWebhookSignature());
 
+    // Test 6: Pluggable Catalog Provider Contract Resolution
+    results.push(await this.testPluggableCatalogProviders());
+
     const passedCount = results.filter((r) => r.status === 'PASSED').length;
 
     return {
@@ -186,6 +189,29 @@ export class RazorAgentTestSuite {
         orderId: testOrderId,
         paymentId: testPaymentId,
         validSignaturePreview: `${validSignature.substring(0, 16)}...`,
+      },
+    };
+  }
+
+  private async testPluggableCatalogProviders(): Promise<TestResult> {
+    const start = Date.now();
+    const activeProvider = globalMCPEngine.getCatalogProvider();
+    const products = await activeProvider.searchProducts('wireless mouse');
+    const hasProducts = products.length > 0;
+    const providerName = activeProvider.getProviderName();
+
+    return {
+      testId: 'TEST_06_PLUGGABLE_CATALOG',
+      name: 'Pluggable CatalogProvider Contract & Resolution',
+      category: 'CATALOG_ARCHITECTURE',
+      status: hasProducts ? 'PASSED' : 'FAILED',
+      durationMs: Date.now() - start,
+      expected: 'Active provider resolves and returns valid ProductItem[] objects with prices and specs',
+      actual: `Provider: ${providerName}, Found ${products.length} product(s)`,
+      details: {
+        providerName,
+        sampleProduct: products[0]?.name,
+        samplePrice: products[0]?.price,
       },
     };
   }

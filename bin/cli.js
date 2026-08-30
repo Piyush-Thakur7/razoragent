@@ -3,12 +3,37 @@
 /**
  * ⚡ RazorAgent by Resence
  * Enterprise Model Context Protocol (MCP) Commerce & Settlement Gateway
- * Production Executable CLI Engine
+ * Production Executable CLI Engine & Merchant Onboarding Wizard
  */
 
+const fs = require('fs');
 const path = require('path');
+const readline = require('readline');
 const pkg = require('../package.json');
 const VERSION = pkg.version || '1.0.6';
+
+// Load .env.local or .env if present in current directory
+try {
+  const envPaths = [path.resolve(process.cwd(), '.env.local'), path.resolve(process.cwd(), '.env')];
+  for (const envPath of envPaths) {
+    if (fs.existsSync(envPath)) {
+      const content = fs.readFileSync(envPath, 'utf8');
+      content.split('\n').forEach((line) => {
+        const match = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/);
+        if (match) {
+          const key = match[1];
+          let value = match[2] || '';
+          if (value.startsWith('"') && value.endsWith('"')) value = value.slice(1, -1);
+          if (value.startsWith("'") && value.endsWith("'")) value = value.slice(1, -1);
+          if (!process.env[key]) process.env[key] = value.trim();
+        }
+      });
+      break;
+    }
+  }
+} catch (e) {
+  // Ignore env read errors
+}
 
 // Dynamically import compiled SDK
 let sdk;
@@ -27,7 +52,11 @@ const {
   globalAgentSimulator,
   globalGuardrailEngine,
   globalRazorpayAdapter,
+  globalMCPEngine,
   globalTestSuite,
+  ShopifyCatalogProvider,
+  WooCommerceCatalogProvider,
+  globalDemoCatalogProvider,
   MCP_TOOLS,
   MERCHANT_CATALOG,
 } = sdk;
@@ -48,7 +77,7 @@ let isVersion = false;
 for (let i = 0; i < rawArgs.length; i++) {
   const arg = rawArgs[i];
 
-  if (arg === 'run' || arg === 'test' || arg === 'tools' || arg === 'catalog' || arg === 'status') {
+  if (['connect', 'status', 'run', 'test', 'tools', 'catalog'].includes(arg)) {
     command = arg;
   } else if ((arg === '--intent' || arg === '-i') && rawArgs[i + 1]) {
     intent = rawArgs[i + 1];
@@ -97,6 +126,16 @@ async function main() {
   if (keyId) process.env.RAZORPAY_KEY_ID = keyId;
   if (keySecret) process.env.RAZORPAY_KEY_SECRET = keySecret;
 
+  if (command === 'connect') {
+    await runConnectWizard();
+    return;
+  }
+
+  if (command === 'status') {
+    await printStatus();
+    return;
+  }
+
   if (command === 'test') {
     await runTests();
     return;
@@ -108,7 +147,7 @@ async function main() {
   }
 
   if (command === 'catalog') {
-    printCatalog();
+    await printCatalog();
     return;
   }
 
@@ -122,11 +161,164 @@ async function main() {
   printBanner();
 }
 
+/**
+ * PART 1: Interactive Merchant Onboarding Wizard
+ */
+async function runConnectWizard() {
+  console.log('\n\x1b[1m\x1b[34m⚡ RazorAgent Merchant Connect Wizard\x1b[0m \x1b[90m(v' + VERSION + ')\x1b[0m');
+  console.log('\x1b[90mConnect your real e-commerce store to the autonomous AI buyer gateway.\x1b[0m\n');
+
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  const question = (query) => new Promise((resolve) => rl.question(query, resolve));
+
+  try {
+    console.log('\x1b[1mStep 1: Select Your E-Commerce Storefront Platform\x1b[0m');
+    console.log('  1) \x1b[32mShopify\x1b[0m (Storefront GraphQL API)');
+    console.log('  2) \x1b[35mWooCommerce\x1b[0m (REST API v3)');
+    console.log('  3) \x1b[33mDemo Catalog\x1b[0m (Zero-config sample data)\n');
+
+    const choice = (await question('Select option (1-3) [Default: 1]: ')).trim() || '1';
+
+    let envUpdates = {};
+
+    if (choice === '1') {
+      console.log('\n\x1b[1mStep 2: Shopify Storefront Credentials\x1b[0m');
+      console.log('\x1b[90mHint: Find this in Shopify Admin → Settings → Apps → Develop apps → Storefront API\x1b[0m\n');
+
+      const domain = (await question('Enter Shopify Store Domain (e.g. store.myshopify.com): ')).trim();
+      const token = (await question('Enter Storefront API Access Token: ')).trim();
+
+      if (!domain || !token) {
+        console.log('\x1b[31m✖ Missing required Shopify domain or token. Aborting setup.\x1b[0m\n');
+        rl.close();
+        return;
+      }
+
+      console.log('\n\x1b[34mTesting live connection to Shopify Storefront API...\x1b[0m');
+      const testProvider = new ShopifyCatalogProvider({ storeDomain: domain, storefrontAccessToken: token });
+      const products = await testProvider.searchProducts('');
+
+      if (products.length > 0) {
+        console.log(`\x1b[32m✔ Connected successfully! Found ${products.length} live product(s) in your Shopify store.\x1b[0m`);
+        console.log('\x1b[90mSample SKUs found:\x1b[0m');
+        products.slice(0, 3).forEach((p, idx) => console.log(`  ${idx + 1}. [${p.id}] ${p.name} (₹${p.price})`));
+      } else {
+        console.log('\x1b[33m⚠ Connected to Storefront API, but 0 published products were returned.\x1b[0m');
+      }
+
+      envUpdates = {
+        SHOPIFY_STORE_DOMAIN: domain,
+        SHOPIFY_STOREFRONT_ACCESS_TOKEN: token,
+      };
+    } else if (choice === '2') {
+      console.log('\n\x1b[1mStep 2: WooCommerce Credentials\x1b[0m');
+      console.log('\x1b[90mHint: WordPress Admin → WooCommerce → Settings → Advanced → REST API\x1b[0m\n');
+
+      const siteUrl = (await question('Enter WooCommerce Store URL (e.g. https://your-store.com): ')).trim();
+      const ck = (await question('Enter Consumer Key (ck_...): ')).trim();
+      const cs = (await question('Enter Consumer Secret (cs_...): ')).trim();
+
+      if (!siteUrl || !ck || !cs) {
+        console.log('\x1b[31m✖ Missing required WooCommerce credentials. Aborting setup.\x1b[0m\n');
+        rl.close();
+        return;
+      }
+
+      console.log('\n\x1b[34mTesting live connection to WooCommerce REST API...\x1b[0m');
+      const testProvider = new WooCommerceCatalogProvider({ siteUrl, consumerKey: ck, consumerSecret: cs });
+      const products = await testProvider.searchProducts('');
+
+      if (products.length > 0) {
+        console.log(`\x1b[32m✔ Connected successfully! Found ${products.length} product(s) in your WooCommerce store.\x1b[0m`);
+      } else {
+        console.log('\x1b[33m⚠ Connected to WooCommerce API, but 0 products were returned.\x1b[0m');
+      }
+
+      envUpdates = {
+        WOOCOMMERCE_SITE_URL: siteUrl,
+        WOOCOMMERCE_CONSUMER_KEY: ck,
+        WOOCOMMERCE_CONSUMER_SECRET: cs,
+      };
+    } else {
+      console.log('\n\x1b[33mUsing zero-config Demo In-Memory Catalog (Sample Data).\x1b[0m\n');
+      rl.close();
+      return;
+    }
+
+    // Save to .env.local
+    const envLocalPath = path.resolve(process.cwd(), '.env.local');
+    let existingContent = '';
+    if (fs.existsSync(envLocalPath)) {
+      existingContent = fs.readFileSync(envLocalPath, 'utf8');
+    }
+
+    let newContent = existingContent;
+    for (const [k, v] of Object.entries(envUpdates)) {
+      const regex = new RegExp(`^${k}=.*$`, 'm');
+      if (regex.test(newContent)) {
+        newContent = newContent.replace(regex, `${k}=${v}`);
+      } else {
+        newContent += `\n${k}=${v}`;
+      }
+      process.env[k] = v;
+    }
+
+    fs.writeFileSync(envLocalPath, newContent.trim() + '\n', 'utf8');
+    console.log(`\n\x1b[32m✔ Configuration saved to .env.local!\x1b[0m`);
+    console.log('Future \x1b[36mnpx razoragent run\x1b[0m commands will now automatically search and purchase from your real store!\n');
+  } catch (err) {
+    console.error('\x1b[31mSetup Error:\x1b[0m', err.message);
+  } finally {
+    rl.close();
+  }
+}
+
+/**
+ * PART 1 / PART 4: Status check with honest labeling
+ */
+async function printStatus() {
+  const provider = globalMCPEngine.getCatalogProvider();
+  const providerName = provider.getProviderName();
+  const isReal = !providerName.includes('Demo');
+
+  console.log('\n\x1b[1m\x1b[34m⚡ RazorAgent System & Catalog Status\x1b[0m \x1b[90m(v' + VERSION + ')\x1b[0m\n');
+
+  console.log('\x1b[1m📦 Active Catalog Provider:\x1b[0m');
+  if (isReal) {
+    console.log(`  • Status  : \x1b[32m\x1b[1m🟢 LIVE CATALOG (${providerName})\x1b[0m`);
+  } else {
+    console.log(`  • Status  : \x1b[33m\x1b[1m🟡 DEMO CATALOG (sample data)\x1b[0m`);
+  }
+
+  // Quick live check
+  try {
+    const products = await provider.searchProducts('');
+    console.log(`  • SKUs    : \x1b[36m${products.length} product(s) indexed\x1b[0m`);
+  } catch (err) {
+    console.log(`  • SKUs    : \x1b[31mError querying provider (${err.message})\x1b[0m`);
+  }
+
+  console.log('\n\x1b[1m🛡️  Autonomous Policy Bounds:\x1b[0m');
+  console.log(`  • Spend Cap  : \x1b[33m₹${spendCap.toLocaleString('en-IN')}\x1b[0m (per transaction limit)`);
+  console.log(`  • SKU Limit  : \x1b[33m${skuLimit} unit(s) max\x1b[0m per item`);
+  console.log(`  • Razorpay   : \x1b[32m${keyId ? `LIVE KEY (${keyId})` : 'HIGH-FIDELITY SANDBOX'}\x1b[0m\n`);
+
+  console.log('\x1b[90mTip: Run "npx razoragent connect" to link a real Shopify or WooCommerce store.\x1b[0m\n');
+}
+
 function printBanner() {
+  const provider = globalMCPEngine.getCatalogProvider();
+  const isReal = !provider.getProviderName().includes('Demo');
+
   console.log('\n\x1b[1m\x1b[34m⚡ RazorAgent\x1b[0m \x1b[90mby\x1b[0m \x1b[1mResence\x1b[0m \x1b[32m(v' + VERSION + ' - Enterprise MCP Gateway)\x1b[0m');
   console.log('\x1b[90mBounded Model Context Protocol Gateway for Autonomous AI Buyers\x1b[0m\n');
 
   console.log('\x1b[1m⚙️  Active Gateway Configuration:\x1b[0m');
+  console.log(`  • Catalog Source       : ${isReal ? `\x1b[32m\x1b[1m🟢 LIVE CATALOG (${provider.getProviderName()})\x1b[0m` : '\x1b[33m\x1b[1m🟡 DEMO CATALOG (sample data)\x1b[0m'}`);
   console.log(`  • Autonomous Spend Cap : \x1b[33m₹${spendCap.toLocaleString('en-IN')}\x1b[0m \x1b[90m(Customizable via --spend-cap <INR>)\x1b[0m`);
   console.log(`  • SKU Purchase Limit   : \x1b[33m${skuLimit} unit(s) max\x1b[0m \x1b[90m(Customizable via --sku-limit <N>)\x1b[0m`);
   console.log(`  • Razorpay Adapter     : \x1b[32m${keyId ? `LIVE KEY (${keyId})` : 'HIGH-FIDELITY SANDBOX'}\x1b[0m \x1b[90m(api.razorpay.com/v1/orders)\x1b[0m`);
@@ -137,26 +329,27 @@ function printBanner() {
   console.log('  • Universal MCP Endpoint : \x1b[36mhttps://razoragent.resence.in/api/razoragent/mcp\x1b[0m');
   console.log('  • Merchant Web Dashboard : \x1b[36mhttps://razoragent.resence.in\x1b[0m\n');
 
-  console.log('\x1b[1m🚀 Quickstart Commands:\x1b[0m');
-  console.log('  \x1b[36mnpx razoragent run --intent "buy coffee under 1000"\x1b[0m');
-  console.log('  \x1b[36mnpx razoragent run --intent "buy earbuds under 500" --spend-cap 500\x1b[0m');
-  console.log('  \x1b[36mnpx razoragent test\x1b[0m');
-  console.log('  \x1b[36mnpx razoragent tools\x1b[0m\n');
-  console.log('\x1b[90mTip: Run "npx razoragent --help" to view full command reference.\x1b[0m\n');
+  console.log('\x1b[1m🚀 Commands:\x1b[0m');
+  console.log('  \x1b[36mnpx razoragent connect\x1b[0m                                \x1b[90m(Merchant Setup: Link Shopify / WooCommerce)\x1b[0m');
+  console.log('  \x1b[36mnpx razoragent run --intent "buy running shoes under 2000"\x1b[0m   \x1b[90m(AI Buyer: Autonomous shopping simulation)\x1b[0m');
+  console.log('  \x1b[36mnpx razoragent status\x1b[0m                                 \x1b[90m(Check active catalog & policy bounds)\x1b[0m');
+  console.log('  \x1b[36mnpx razoragent test\x1b[0m                                   \x1b[90m(Run automated verification suite)\x1b[0m\n');
 }
 
 function printHelp() {
   console.log('\n\x1b[1m\x1b[34m⚡ RazorAgent CLI Reference (v' + VERSION + ')\x1b[0m\n');
   console.log('Usage:');
   console.log('  npx razoragent [command] [options]\n');
-  console.log('Commands:');
-  console.log('  run                 Execute an autonomous buyer workflow with full MCP tool calling');
+  console.log('Merchant Setup Commands:');
+  console.log('  connect             Interactive onboarding wizard to connect your real Shopify / WooCommerce store');
+  console.log('  status              Display current active catalog provider (Demo vs Real) and gateway bounds\n');
+  console.log('AI Buyer Simulation Commands:');
+  console.log('  run                 Simulates an AI agent autonomously shopping your connected store within guardrails');
   console.log('  test                Run the 5/5 automated fintech verification suite');
   console.log('  tools               List all 6 registered Model Context Protocol (MCP) commerce tools');
-  console.log('  catalog             List live merchant inventory SKUs and prices');
-  console.log('  status              Display current gateway policies and Razorpay adapter status\n');
+  console.log('  catalog             List live merchant inventory SKUs and prices\n');
   console.log('Options:');
-  console.log('  -i, --intent <TEXT> Natural language buyer intent (e.g. "buy earbuds under 500")');
+  console.log('  -i, --intent <TEXT> Natural language buyer intent (e.g. "buy running shoes under 2000")');
   console.log('  --spend-cap <INR>   Maximum allowable transaction spend limit in INR (Default: 5000)');
   console.log('  --sku-limit <N>     Maximum allowed item quantity per SKU (Default: 3)');
   console.log('  --key <KEY_ID>      Razorpay API Key ID (e.g. rzp_test_xxx)');
@@ -164,11 +357,6 @@ function printHelp() {
   console.log('  --json              Output raw JSON execution trace');
   console.log('  -v, --version       Show package version');
   console.log('  -h, --help          Show this help documentation\n');
-  console.log('Examples:');
-  console.log('  npx razoragent run --intent "buy coffee under 1000"');
-  console.log('  npx razoragent run --intent "buy 5 keyboards" --sku-limit 3');
-  console.log('  npx razoragent run --intent "buy earbuds under 500" --spend-cap 500');
-  console.log('  npx razoragent test\n');
 }
 
 function printTools() {
@@ -181,9 +369,11 @@ function printTools() {
   });
 }
 
-function printCatalog() {
-  console.log('\n\x1b[1m\x1b[34m🏬 Active Merchant Inventory Catalog:\x1b[0m\n');
-  MERCHANT_CATALOG.forEach((item) => {
+async function printCatalog() {
+  const provider = globalMCPEngine.getCatalogProvider();
+  console.log(`\n\x1b[1m\x1b[34m🏬 Active Merchant Inventory Catalog [${provider.getProviderName()}]:\x1b[0m\n`);
+  const items = await provider.searchProducts('');
+  items.forEach((item) => {
     console.log(`  • [\x1b[36m${item.id}\x1b[0m] \x1b[1m${item.name}\x1b[0m`);
     console.log(`    Price: \x1b[32m₹${item.price.toLocaleString('en-IN')}\x1b[0m | Stock: ${item.stock} | Rating: ${item.rating}★ | Category: ${item.category}`);
   });
@@ -208,11 +398,19 @@ async function runTests() {
   if (!allPassed) process.exit(1);
 }
 
+/**
+ * PART 2: AI Buyer Simulation Execution with Honest Labeling
+ */
 async function executeIntent(userIntent) {
+  const provider = globalMCPEngine.getCatalogProvider();
+  const providerName = provider.getProviderName();
+  const isReal = !providerName.includes('Demo');
+
   if (!isJson) {
-    console.log('\n\x1b[1m\x1b[34m⚡ RazorAgent by Resence (v' + VERSION + ')\x1b[0m — Autonomous AI Buyer Execution');
+    console.log('\n\x1b[1m\x1b[34m⚡ RazorAgent by Resence (v' + VERSION + ')\x1b[0m — Autonomous AI Buyer Simulation');
     console.log('\x1b[90m================================================================\x1b[0m\n');
-    console.log(`\x1b[1mPrompt:\x1b[0m "${userIntent}"`);
+    console.log(`\x1b[1mBuyer Prompt:\x1b[0m "${userIntent}"`);
+    console.log(`\x1b[1mStore Source:\x1b[0m ${isReal ? `\x1b[32m\x1b[1m🟢 LIVE CATALOG (${providerName})\x1b[0m` : '\x1b[33m\x1b[1m🟡 DEMO CATALOG (sample data)\x1b[0m'}`);
     console.log(`\x1b[90mActive Policies:\x1b[0m Spend Cap: ₹${spendCap.toLocaleString('en-IN')} | SKU Limit: ${skuLimit} units | Gateway: ${keyId ? 'LIVE RAZORPAY' : 'SANDBOX'}\n`);
   }
 

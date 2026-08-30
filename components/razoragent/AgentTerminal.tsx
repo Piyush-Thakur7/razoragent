@@ -8,6 +8,8 @@ interface AgentTerminalProps {
   onRunSimulation: (prompt: string) => Promise<void>;
   isLoading: boolean;
   simulationResult: SimulationResult | null;
+  liveStoreName?: string | null;
+  onOpenConnectStore?: () => void;
 }
 
 const PRESET_PROMPTS = [
@@ -43,9 +45,11 @@ const PRESET_PROMPTS = [
   },
 ];
 
-export default function AgentTerminal({ onRunSimulation, isLoading, simulationResult }: AgentTerminalProps) {
+export default function AgentTerminal({ onRunSimulation, isLoading, simulationResult, liveStoreName, onOpenConnectStore }: AgentTerminalProps) {
   const [inputPrompt, setInputPrompt] = useState('');
   const [expandedSteps, setExpandedSteps] = useState<Record<number, boolean>>({});
+
+  const isLive = Boolean(liveStoreName && !liveStoreName.includes('Demo'));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,23 +105,47 @@ export default function AgentTerminal({ onRunSimulation, isLoading, simulationRe
           </div>
         </div>
 
-        {simulationResult && (
-          <div className="flex items-center space-x-2 text-xs font-mono">
-            <span className="text-slate-400 flex items-center gap-1">
-              <Clock className="w-3 h-3 text-slate-500" />
-              {simulationResult.totalDurationMs}ms
-            </span>
-            {simulationResult.success ? (
-              <span className="px-2 py-0.5 rounded text-[11px] bg-emerald-950/80 text-emerald-400 border border-emerald-800 flex items-center gap-1 font-semibold">
-                <CheckCircle2 className="w-3 h-3" /> ORDER CREATED
-              </span>
-            ) : (
-              <span className="px-2 py-0.5 rounded text-[11px] bg-rose-950/80 text-rose-400 border border-rose-800 flex items-center gap-1 font-semibold">
-                <ShieldAlert className="w-3 h-3" /> INTERCEPTED
-              </span>
-            )}
+        {/* Honest Catalog Indicator */}
+        <div className="flex items-center space-x-2 text-xs font-mono">
+          <div
+            className={`px-2.5 py-0.5 rounded-lg border text-[11px] font-bold flex items-center gap-1.5 transition ${
+              isLive
+                ? 'bg-emerald-950/60 border-emerald-500/50 text-emerald-300'
+                : 'bg-amber-950/40 border-amber-500/40 text-amber-300'
+            }`}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`}></span>
+            <span>{isLive ? `🟢 LIVE: ${liveStoreName}` : '🟡 DEMO CATALOG (sample data)'}</span>
           </div>
-        )}
+
+          {onOpenConnectStore && (
+            <button
+              onClick={onOpenConnectStore}
+              className="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-300 hover:text-white transition"
+              title="Connect real store"
+            >
+              Connect
+            </button>
+          )}
+
+          {simulationResult && (
+            <div className="flex items-center space-x-2 text-xs font-mono pl-2 border-l border-slate-800">
+              <span className="text-slate-400 flex items-center gap-1">
+                <Clock className="w-3 h-3 text-slate-500" />
+                {simulationResult.totalDurationMs}ms
+              </span>
+              {simulationResult.success ? (
+                <span className="px-2 py-0.5 rounded text-[11px] bg-emerald-950/80 text-emerald-400 border border-emerald-800 flex items-center gap-1 font-semibold">
+                  <CheckCircle2 className="w-3 h-3" /> ORDER CREATED
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded text-[11px] bg-rose-950/80 text-rose-400 border border-rose-800 flex items-center gap-1 font-semibold">
+                  <ShieldAlert className="w-3 h-3" /> INTERCEPTED
+                </span>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Visual Pipeline Stepper */}
