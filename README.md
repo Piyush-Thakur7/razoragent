@@ -40,7 +40,7 @@ flowchart TD
     subgraph Gateway["🛡️ RazorAgent MCP & Policy Gateway (Next.js Edge)"]
         Agent1 & Agent2 & Agent3 -->|"JSON-RPC 2.0 (/api/razoragent/mcp)"| MCP["MCP Tool Dispatcher"]
         
-        MCP --> Catalog["Semantic Catalog &\nVector Search"]
+        MCP --> Catalog["Catalog Search &\nFiltering Engine"]
         MCP --> Quoting["Tax & Promotion Engine\n(18% GST + Coupons)"]
         
         Quoting --> Guardrails{"Deterministic\nPolicy Engine"}
@@ -72,7 +72,7 @@ RazorAgent exposes 6 standard Model Context Protocol tools via JSON-RPC 2.0 (`/a
 
 | Tool Name | Parameters | Purpose |
 | :--- | :--- | :--- |
-| `search_products` | `query`, `category`, `max_price`, `min_rating` | Semantic search and filtering across merchant inventory. |
+| `search_products` | `query`, `category`, `max_price`, `min_rating` | Category-aware product search and filtering across merchant inventory. |
 | `get_product_details` | `product_id` | Full technical specs, live inventory, and eligible coupon codes. |
 | `calculate_cart_quote` | `items[]`, `coupon_code` | Computes subtotal, coupon discount, 18% GST tax, and shipping. |
 | `evaluate_spend_policy` | `cart_id` | Deterministically validates compliance against merchant guardrails. |
