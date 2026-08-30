@@ -43,7 +43,7 @@ flowchart TD
         
         MCP --> CatalogAdapter["Pluggable Catalog Adapter Layer\n(CatalogProvider Interface)"]
         
-        CatalogAdapter --> Prov1["DemoCatalogProvider\n(28+ In-Memory SKUs)"]
+        CatalogAdapter --> Prov1["DemoCatalogProvider\n(32+ In-Memory SKUs)"]
         CatalogAdapter --> Prov2["ShopifyCatalogProvider\n(Storefront GraphQL API)"]
         CatalogAdapter --> Prov3["WooCommerceCatalogProvider\n(REST API v3)"]
         
@@ -116,7 +116,7 @@ Any concurrent thread hitting the gateway while an order is in-flight is held on
 ## 🔌 5. Connecting Your Real Store (Shopify / WooCommerce / Custom)
 
 RazorAgent uses a pluggable **`CatalogProvider`** contract. It ships with:
-1. **`DemoCatalogProvider`**: Zero-configuration reference catalog with 28+ products across 7 categories.
+1. **`DemoCatalogProvider`**: Zero-configuration reference catalog with 32+ products across 7 categories.
 2. **`ShopifyCatalogProvider`**: Real production GraphQL adapter for Shopify Storefront API (`/api/2024-01/graphql.json`).
 3. **`WooCommerceCatalogProvider`**: Real REST adapter for WooCommerce (`/wp-json/wc/v3/products`).
 
