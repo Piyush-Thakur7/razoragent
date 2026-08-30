@@ -14,22 +14,32 @@ const PRESET_PROMPTS = [
   {
     label: '🟢 Happy Path Checkout',
     prompt: 'Find me a Keychron mechanical keyboard under ₹4,000 and complete checkout with coupon AGENT500',
-    desc: 'Full flow: Catalog $\\rightarrow$ Quote $\\rightarrow$ Guardrail $\\rightarrow$ Razorpay Order',
+    desc: 'Full flow: Catalog → Quote → Guardrail → Razorpay Order',
   },
   {
     label: '🔴 Trigger Budget Guardrail',
     prompt: 'Buy Sony WH-1000XM5 active noise cancelling headphones for ₹18,990',
-    desc: 'Exceeds autonomous ₹5,000 spend cap $\\rightarrow$ Blocked with reason code',
+    desc: 'Exceeds autonomous ₹5,000 spend cap → Blocked with reason code',
   },
   {
     label: '🟡 Trigger Quantity Guardrail',
     prompt: 'Order 8 units of Blue Tokai coffee beans with discount coupon COFFEE100',
-    desc: 'Exceeds max 3 units/item safety limit $\\rightarrow$ SKU hoarding blocked',
+    desc: 'Exceeds max 3 units/item safety limit → SKU hoarding blocked',
   },
   {
-    label: '🟢 Earbuds with Discount',
-    prompt: 'Search Nothing Ear (2) earbuds under ₹5,000 and calculate discounted cart quote',
-    desc: 'Evaluates inventory, 18% GST tax, and promo code validation',
+    label: '🟢 Running Shoes (Apparel)',
+    prompt: 'Buy Puma everyday lightweight running shoes under ₹2,000',
+    desc: 'Apparel category with dynamic GST calculation & shipping validation',
+  },
+  {
+    label: '🟢 Travel Tech Backpack',
+    prompt: 'Get me an Aer travel carry-on backpack with coupon TRAVEL15',
+    desc: 'Bags category: 15% discount evaluation and guardrail limit check',
+  },
+  {
+    label: '🟢 Specialty Coffee',
+    prompt: 'Order Blue Tokai specialty coffee roast beans with coupon COFFEE100',
+    desc: 'Specialty coffee single origin beans with coupon deduction',
   },
 ];
 

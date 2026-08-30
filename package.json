@@ -1,25 +1,29 @@
 {
   "name": "razoragent",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "RazorAgent by Resence — Bounded Model Context Protocol (MCP) Commerce & Settlement Gateway for Autonomous AI Buyers",
-  "main": "lib/razoragent/index.ts",
-  "types": "lib/razoragent/index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "homepage": "https://razoragent.resence.in",
   "bin": {
     "razoragent": "./bin/cli.js"
   },
   "files": [
+    "dist",
     "bin",
-    "lib",
-    "scripts",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
+    "build:package": "tsc -p tsconfig.build.json",
+    "prepublishOnly": "npm run build:package",
+    "build": "next build && npm run build:package",
     "dev": "next dev",
-    "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test:razoragent": "tsx scripts/test-razoragent.ts"
+    "test": "npm run test:razoragent",
+    "test:razoragent": "tsx scripts/test-razoragent.ts",
+    "test:mcp": "tsx scripts/test-mcp-direct.ts"
   },
   "keywords": [
     "resence",
@@ -39,12 +43,7 @@
     "type": "git",
     "url": "https://github.com/Piyush-Thakur7/razoragent.git"
   },
-  "dependencies": {
-    "lucide-react": "^0.470.0",
-    "next": "16.2.9",
-    "react": "19.2.4",
-    "react-dom": "19.2.4"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
@@ -52,6 +51,10 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
+    "lucide-react": "^0.470.0",
+    "next": "16.2.9",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
     "tailwindcss": "^4",
     "tsx": "^4.19.0",
     "typescript": "^5"

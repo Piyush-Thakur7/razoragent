@@ -29,8 +29,8 @@ export async function POST(req: NextRequest) {
           protocolVersion: '2024-11-05',
           serverInfo: {
             name: 'razoragent-mcp-gateway',
-            version: '1.0.0',
-            vendor: 'RazorAgent / Razorpay AI Builder 2026',
+            version: '1.0.6',
+            vendor: 'RazorAgent by Resence',
           },
         },
       });
