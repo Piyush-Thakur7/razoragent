@@ -49,17 +49,21 @@ class AgentSimulator {
         }
         // 2. Dynamic Budget / Price Extraction
         let maxPrice = undefined;
-        const priceMatch = prompt.match(/(?:under|below|max|budget|upto|less\s+than|worth|around|for)?\s*(?:₹|rs\.?|inr)?\s*([0-9]{3,7})/i);
-        if (priceMatch && priceMatch[1] && !priceMatch[1].startsWith('1000') && !lower.includes('wh-1000')) {
-            maxPrice = parseInt(priceMatch[1].replace(/,/g, ''), 10);
+        const priceConstraintMatch = prompt.match(/(?:under|below|max|budget|upto|less\s+than|within|for)\s*(?:₹|rs\.?|inr|rupees?)?\s*([0-9]+(?:\.[0-9]+)?)/i)
+            || prompt.match(/(?:₹|rs\.?|inr)\s*([0-9]+(?:\.[0-9]+)?)\s*(?:budget|max|limit|under|below|or\s+less)?/i);
+        if (priceConstraintMatch && priceConstraintMatch[1]) {
+            const parsed = parseInt(priceConstraintMatch[1].replace(/,/g, ''), 10);
+            if (!isNaN(parsed) && !lower.includes('wh-1000') && !lower.includes('1000xm')) {
+                maxPrice = parsed;
+            }
         }
-        // 3. Dynamic Keyword Extraction (Strips filler words and intent prefixes)
+        // 3. Dynamic Keyword Extraction (Strips filler words, currency units, and intent prefixes)
         let cleanedKeywords = lower
             .replace(/(?:i\s+want\s+to\s+buy|i\s+would\s+like\s+to\s+order|buy\s+me|order\s+me|purchase|get\s+me|find\s+me|can\s+you\s+get|please\s+buy|order|buy|find|search|get|i\s+need|need)\s+/gi, ' ')
-            .replace(/(?:under|below|above|max|budget|for|with|about|worth)\s*(?:₹|rs\.?|inr)?\s*[0-9,]+/gi, ' ')
+            .replace(/(?:under|below|above|max|budget|for|with|about|worth|less\s+than|within)\s*(?:₹|rs\.?|inr|rupees?)?\s*[0-9,]+/gi, ' ')
             .replace(/(?:[0-9]+)\s*(?:units|items|pieces|x|pcs|qty|quantity|count|nos)/gi, ' ')
-            .replace(/₹|rs\.?|inr/gi, ' ')
-            .replace(/\b(a|an|the|in|for|with|to|me|of|at|on|some|any|good|best|worth|checkout|and|complete)\b/gi, ' ')
+            .replace(/₹|rs\.?|inr|rupees?/gi, ' ')
+            .replace(/\b(a|an|the|in|for|with|to|me|of|at|on|some|any|good|best|worth|checkout|and|complete|unit|units|piece|pieces|item|items)\b/gi, ' ')
             .trim();
         const query = cleanedKeywords || 'keyboard';
         // Step 2: Tool Call -> search_products
@@ -81,7 +85,7 @@ class AgentSimulator {
                     break;
             }
         }
-        addStep('TOOL_CALL', `Invoking MCP Tool "search_products" with query: "${query}"${maxPrice ? ` (user target budget: ₹${maxPrice.toLocaleString('en-IN')})` : ''}. Found ${searchResult.count} matching SKUs in merchant inventory.`, { name: 'search_products', arguments: searchArgs }, searchResult);
+        addStep('TOOL_CALL', `Invoking MCP Tool "search_products" with query: "${query}"${maxPrice ? ` (buyer stated budget cap: ₹${maxPrice.toLocaleString('en-IN')})` : ''}. Found ${searchResult.count} matching SKUs in merchant inventory.`, { name: 'search_products', arguments: searchArgs }, searchResult);
         if (searchResult.count === 0) {
             addStep('REASONING', `No items matched criteria "${query}" in merchant inventory. Available store categories: Electronics, Apparel & Footwear, Bags & Accessories, Home Office, Specialty Coffee, Wellness, Software Licenses. Halting order to avoid unauthorized purchases.`);
             return {
@@ -92,22 +96,52 @@ class AgentSimulator {
                 totalDurationMs: Date.now() - startTime,
             };
         }
-        const selectedProduct = searchResult.products[0];
+        // Step 3 & 4 Candidate Evaluation: Pre-quote candidate products against estimated/calculated final total (base + 18% GST - coupon)
+        let selectedProduct = searchResult.products[0];
+        let selectedDetails = null;
+        let selectedQuote = null;
+        let selectedCoupon = 'AGENT500';
+        let budgetExceededFlag = false;
+        for (const candidate of searchResult.products) {
+            const details = await mcp_engine_1.globalMCPEngine.executeTool('get_product_details', { product_id: candidate.id });
+            const candidateCoupon = details.eligibleCoupons && details.eligibleCoupons.length > 0
+                ? details.eligibleCoupons[0]
+                : 'AGENT500';
+            const quote = await mcp_engine_1.globalMCPEngine.executeTool('calculate_cart_quote', {
+                items: [{ product_id: candidate.id, quantity: targetQty }],
+                coupon_code: candidateCoupon,
+            });
+            if (!selectedQuote) {
+                selectedProduct = candidate;
+                selectedDetails = details;
+                selectedQuote = quote;
+                selectedCoupon = candidateCoupon;
+            }
+            // If buyer specified maxPrice and this candidate's FINAL payable total fits within budget, select it
+            if (maxPrice && quote.totalAmount <= maxPrice) {
+                selectedProduct = candidate;
+                selectedDetails = details;
+                selectedQuote = quote;
+                selectedCoupon = candidateCoupon;
+                budgetExceededFlag = false;
+                break;
+            }
+        }
+        if (maxPrice && selectedQuote && selectedQuote.totalAmount > maxPrice) {
+            budgetExceededFlag = true;
+        }
         // Step 3: Tool Call -> get_product_details
         const detailsArgs = { product_id: selectedProduct.id };
-        const detailsResult = await mcp_engine_1.globalMCPEngine.executeTool('get_product_details', detailsArgs);
-        addStep('TOOL_CALL', `Selected optimal candidate "${selectedProduct.name}" (Rating: ${selectedProduct.rating}★). Retrieving full technical specs and real-time inventory count.`, { name: 'get_product_details', arguments: detailsArgs }, detailsResult);
-        // Determine eligible coupon
-        const eligibleCoupon = detailsResult.eligibleCoupons && detailsResult.eligibleCoupons.length > 0
-            ? detailsResult.eligibleCoupons[0]
-            : 'AGENT500';
+        addStep('TOOL_CALL', `Selected candidate "${selectedProduct.name}" (Listed Base: ₹${selectedProduct.price_inr.toLocaleString('en-IN')}, Rating: ${selectedProduct.rating}★). Retrieving full technical specs and real-time inventory count.`, { name: 'get_product_details', arguments: detailsArgs }, selectedDetails);
         // Step 4: Tool Call -> calculate_cart_quote
         const quoteArgs = {
             items: [{ product_id: selectedProduct.id, quantity: targetQty }],
-            coupon_code: eligibleCoupon,
+            coupon_code: selectedCoupon,
         };
-        const cartQuote = await mcp_engine_1.globalMCPEngine.executeTool('calculate_cart_quote', quoteArgs);
-        addStep('TOOL_CALL', `Generating authenticated Cart Quote with 18% GST tax calculation and applying promotion coupon "${eligibleCoupon}". Payable amount: ₹${cartQuote.totalAmount.toLocaleString('en-IN')}.`, { name: 'calculate_cart_quote', arguments: quoteArgs }, cartQuote);
+        const cartQuote = selectedQuote;
+        addStep('TOOL_CALL', `Generating authenticated Cart Quote with 18% GST tax calculation and applying promotion coupon "${selectedCoupon}". Final Payable Total: ₹${cartQuote.totalAmount.toLocaleString('en-IN')}.${budgetExceededFlag
+            ? ` ⚠️ Notice: Final payable total (₹${cartQuote.totalAmount.toLocaleString('en-IN')}) exceeds buyer stated budget cap (₹${maxPrice?.toLocaleString('en-IN')}) after taxes/shipping.`
+            : ''}`, { name: 'calculate_cart_quote', arguments: quoteArgs }, cartQuote);
         // Step 5: Policy Gate Evaluation
         const policyResult = await mcp_engine_1.globalMCPEngine.executeTool('evaluate_spend_policy', {
             cart_id: cartQuote.cartId,
