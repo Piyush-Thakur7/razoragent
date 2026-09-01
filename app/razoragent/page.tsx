@@ -201,16 +201,17 @@ export default function RazorAgentPage() {
                 />
               </div>
 
-            {/* Right Settlement Card & Live Webhook (5 Cols) */}
-            <div className="lg:col-span-5 space-y-6">
-              <OrderReceiptCard
-                order={simulationResult?.order || null}
-                cart={simulationResult?.finalCart || null}
-                onOpenCheckoutModal={() => setIsCheckoutOpen(true)}
-                verificationResult={verificationResult}
-              />
+              {/* Right Settlement Card & Live Webhook (5 Cols) */}
+              <div className="lg:col-span-5 space-y-6">
+                <OrderReceiptCard
+                  order={simulationResult?.order || null}
+                  cart={simulationResult?.finalCart || null}
+                  onOpenCheckoutModal={() => setIsCheckoutOpen(true)}
+                  verificationResult={verificationResult}
+                />
 
-              <WebhookStream events={webhookEvents} />
+                <WebhookStream events={webhookEvents} />
+              </div>
             </div>
           </div>
         )}
