@@ -85,7 +85,7 @@ export default function ConnectPage() {
             </div>
             <div>
               <h1 className="text-lg font-bold text-white tracking-tight">Connect Your E-Commerce Store</h1>
-              <p className="text-xs text-slate-400">Onboard your live inventory to RazorAgent's bounded AI buyer gateway</p>
+              <p className="text-xs text-slate-400">Try the full store-connect and settlement flow yourself — in production, install <code className="text-slate-300 font-mono">razoragent</code> to run your own private gateway.</p>
             </div>
           </div>
 

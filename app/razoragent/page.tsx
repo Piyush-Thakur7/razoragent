@@ -174,17 +174,32 @@ export default function RazorAgentPage() {
         
         {/* Tab 1: AI Buyer Studio */}
         {activeTab === 'buyer-studio' && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {/* Left Terminal (7 Cols) */}
-            <div className="lg:col-span-7 h-[680px]">
-              <AgentTerminal
-                onRunSimulation={handleRunSimulation}
-                isLoading={isLoading}
-                simulationResult={simulationResult}
-                liveStoreName={liveStoreName}
-                onOpenConnectStore={() => setIsConnectOpen(true)}
-              />
+          <div className="space-y-4">
+            <div className="px-4 py-2 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-400 flex items-center justify-between">
+              <p>
+                Reference deployment for the <code className="text-slate-200 font-mono">razoragent</code> npm package. In production, merchants host this gateway on their own infrastructure.
+              </p>
+              <a
+                href="https://github.com/Piyush-Thakur7/razoragent"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#3395FF] hover:underline font-medium ml-3 shrink-0"
+              >
+                GitHub →
+              </a>
             </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              {/* Left Terminal (7 Cols) */}
+              <div className="lg:col-span-7 h-[680px]">
+                <AgentTerminal
+                  onRunSimulation={handleRunSimulation}
+                  isLoading={isLoading}
+                  simulationResult={simulationResult}
+                  liveStoreName={liveStoreName}
+                  onOpenConnectStore={() => setIsConnectOpen(true)}
+                />
+              </div>
 
             {/* Right Settlement Card & Live Webhook (5 Cols) */}
             <div className="lg:col-span-5 space-y-6">

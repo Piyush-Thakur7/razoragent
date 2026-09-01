@@ -10,11 +10,21 @@
 
 ---
 
-## 🎯 1. What RazorAgent Solves
+## 📦 1. What is RazorAgent?
 
-Traditional e-commerce is built for **human eyes and fingers**—visual layouts, CSS styling, clickable DOM buttons, and human-in-the-loop OTP checkouts.
+RazorAgent is an open-source TypeScript SDK and CLI that turns a merchant's existing e-commerce backend (Shopify, WooCommerce, or a custom catalog) into a Model Context Protocol (MCP) server with pre-settlement guardrails and Razorpay order creation.
 
-By 2026, commerce is transitioning to **Autonomous AI Agents** (OpenAI Operator, Claude Computer Use, Gemini Agentic Workflows, NPCI Unified Agent Protocol) researching and purchasing on behalf of consumers and enterprises.
+Developers install `razoragent`, configure their store credentials and Razorpay API keys in environment variables, and run it as an isolated service on their own infrastructure. Autonomous buying agents (such as Claude Desktop, OpenAI Operator, or custom agent frameworks) can then query the catalog, calculate tax-inclusive quotes, and create verified Razorpay orders over standard JSON-RPC 2.0.
+
+The web interface at [razoragent.resence.in](https://razoragent.resence.in) and the CLI (`npx razoragent`) are reference deployments demonstrating the complete search, quoting, guardrail evaluation, and settlement pipeline against live APIs.
+
+---
+
+## 🎯 2. What RazorAgent Solves
+
+Traditional e-commerce is built for human eyes and fingers—visual layouts, CSS styling, clickable DOM buttons, and human-in-the-loop OTP checkouts.
+
+By 2026, commerce is transitioning to Autonomous AI Agents (OpenAI Operator, Claude Computer Use, Gemini Agentic Workflows, NPCI Unified Agent Protocol) researching and purchasing on behalf of consumers and enterprises.
 
 However, letting AI agents interact directly with legacy checkout endpoints creates 4 critical failure modes:
 1. **Financial Hallucinations**: LLMs generating fabricated price amounts or ordering invalid product variants.
@@ -22,11 +32,11 @@ However, letting AI agents interact directly with legacy checkout endpoints crea
 3. **Unbounded Spending**: No mathematical guarantee that an agent won't exceed user budgets or liquidate inventory.
 4. **Lack of Standardized Tooling**: Fragile web scraping instead of structured tool interfaces.
 
-**RazorAgent by Resence** bridges this gap. It turns any merchant store (Shopify, WooCommerce, or custom databases) into a standardized **Model Context Protocol (MCP)** server, enabling AI shopping agents to discover products, compute tax-accurate quotes, and complete transactions through **Razorpay APIs**—backed by **deterministic mathematical guardrails** and **SHA-256 cryptographic idempotency locks**.
+RazorAgent bridges this gap. It turns any merchant store (Shopify, WooCommerce, or custom databases) into a standardized Model Context Protocol (MCP) server, enabling AI shopping agents to discover products, compute tax-accurate quotes, and complete transactions through Razorpay APIs—backed by deterministic mathematical guardrails and SHA-256 cryptographic idempotency locks.
 
 ---
 
-## 🏛️ 2. System Architecture & Universal MCP Availability
+## 🏛️ 3. System Architecture & Universal MCP Availability
 
 RazorAgent is an open, universally accessible gateway. Any AI agent (Claude Desktop, OpenAI Operator, Gemini CLI, Cursor, or custom Python agent) connects via standard **JSON-RPC 2.0**:
 
@@ -72,7 +82,7 @@ flowchart TD
 
 ---
 
-## 🛠️ 3. Standardized MCP Commerce Tools
+## 🛠️ 4. Standardized MCP Commerce Tools
 
 RazorAgent exposes 6 standard Model Context Protocol tools via JSON-RPC 2.0 (`/api/razoragent/mcp`):
 
@@ -87,7 +97,7 @@ RazorAgent exposes 6 standard Model Context Protocol tools via JSON-RPC 2.0 (`/a
 
 ---
 
-## ⚡ 4. High-Availability Engineering: The Concurrency Challenge
+## ⚡ 5. High-Availability Engineering: The Concurrency Challenge
 
 ### The Problem: The LLM Non-Deterministic Retry Race Condition
 During stress testing with concurrent autonomous shopping agents, simulated network jitter (1.5-second latency on order creation) triggered a critical issue:
@@ -113,7 +123,7 @@ Any concurrent thread hitting the gateway while an order is in-flight is held on
 
 ---
 
-## 🔌 5. Connecting Your Real Store (Shopify / WooCommerce / Custom)
+## 🔌 6. Connecting Your Real Store (Shopify / WooCommerce / Custom)
 
 RazorAgent uses a pluggable **`CatalogProvider`** contract. It ships with:
 1. **`DemoCatalogProvider`**: Zero-configuration reference catalog with 32+ products across 7 categories.
@@ -176,7 +186,7 @@ const engine = new MCPEngine(new CustomPostgresCatalogProvider());
 
 ---
 
-## 🚀 6. Quick Start & Command Reference
+## 🚀 7. Quick Start & Command Reference
 
 ### Option A: Try Instantly with Demo Data (Zero Config)
 ```bash
@@ -209,7 +219,7 @@ npx razoragent run --intent "Find mechanical keyboard with coupon AGENT500"
 
 ---
 
-## 🧪 7. Automated Verification Suite (6/6 Passing)
+## 🧪 8. Automated Verification Suite (6/6 Passing)
 
 RazorAgent includes automated system verification suites accessible via `npm run test:razoragent` or the **"Run Tests"** button on the web UI:
 
@@ -228,7 +238,7 @@ Summary: 6/6 passed (100% Assertion Rate)
 
 ---
 
-## 🏬 8. Next.js / Express Gateway Deployment
+## 🏬 9. Next.js / Express Gateway Deployment
 
 ```typescript
 // Example: Exposing RazorAgent MCP tools on any Next.js / Express merchant backend
@@ -244,6 +254,18 @@ export async function POST(req: Request) {
   return Response.json(response);
 }
 ```
+
+---
+
+## 🗺️ 10. Scope and Roadmap
+
+v1.x is scoped as an isolated gateway for a single merchant's catalog and Razorpay account.
+
+The following capabilities are out of scope for the current release and planned for future iterations:
+
+- Multi-tenant deployments hosting multiple merchant catalogs on a single instance
+- Cross-merchant product discovery, federated search, and catalog aggregation
+- Web dashboard user authentication and role-based access control (configuration in v1.x is managed through environment variables)
 
 ---
 

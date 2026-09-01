@@ -116,7 +116,7 @@ export default function ConnectStoreModal({ isOpen, onClose, onStoreConnected }:
             </div>
             <div>
               <h3 className="text-sm font-bold text-white">Merchant Storefront Onboarding</h3>
-              <p className="text-xs text-slate-400">Connect your live catalog to RazorAgent's bounded AI buyer gateway</p>
+              <p className="text-xs text-slate-400">Try the full store-connect and settlement flow yourself — in production, install <code className="text-slate-300 font-mono">razoragent</code> to run your own private gateway.</p>
             </div>
           </div>
 
