@@ -85,9 +85,9 @@ export default function OrderReceiptCard({
         {/* Item list */}
         <div className="p-2.5 rounded-xl bg-[#080B14] border border-slate-800/80 space-y-1.5 font-mono text-xs">
           {cart.items.map((item, idx) => (
-            <div key={idx} className="flex justify-between items-center text-slate-300 text-[11px]">
-              <span className="truncate max-w-[200px]">{item.quantity}x {item.name}</span>
-              <span className="font-semibold text-slate-200">₹{item.subtotal.toLocaleString('en-IN')}</span>
+            <div key={idx} className="flex justify-between items-center text-slate-300 text-[11px] gap-2">
+              <span className="truncate flex-1" title={item.name}>{item.quantity}x {item.name}</span>
+              <span className="font-semibold text-slate-200 shrink-0">₹{item.subtotal.toLocaleString('en-IN')}</span>
             </div>
           ))}
           {cart.discount > 0 && (
